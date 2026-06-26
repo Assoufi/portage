@@ -6,6 +6,9 @@ use App\Http\Controllers\ConsultantController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\FournisseurController;
 use App\Http\Controllers\MissionController;
+use App\Http\Controllers\PaiementController;
+use App\Http\Controllers\RepartitionController;
+use App\Http\Controllers\FactureController;
 use Illuminate\Support\Facades\Route;
 
 // Routes publiques (authentification)
@@ -42,6 +45,19 @@ Route::middleware(['auth'])->group(function () {
         ->name('missions.calculate-prix-vente');
     Route::get('missions/dashboard', [MissionController::class, 'dashboard'])
         ->name('missions.dashboard');
+    
+    // Routes pour les Paiements
+    Route::post('paiements/importer', [PaiementController::class, 'importer'])
+        ->name('paiements.importer');
+    Route::resource('paiements', PaiementController::class);
+    
+    // Routes pour les Répartitions
+    Route::resource('repartitions', RepartitionController::class);
+    
+    // Routes pour les Factures
+    Route::post('factures/{facture}/marquer-reglee', [FactureController::class, 'marquerReglee'])
+        ->name('factures.marquer-reglee');
+    Route::resource('factures', FactureController::class);
     
     // Route pour le profil utilisateur (Breeze)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

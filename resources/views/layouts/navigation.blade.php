@@ -31,6 +31,18 @@
                     <x-nav-link :href="route('fournisseurs.index')" :active="request()->routeIs('fournisseurs.*')">
                         Fournisseurs
                     </x-nav-link>
+                    
+                    <x-nav-link :href="route('paiements.index')" :active="request()->routeIs('paiements.*')">
+                        Paiements
+                    </x-nav-link>
+                    
+                    <x-nav-link :href="route('repartitions.index')" :active="request()->routeIs('repartitions.*')">
+                        Répartitions
+                    </x-nav-link>
+
+                    <x-nav-link :href="route('factures.index')" :active="request()->routeIs('factures.*')">
+                        Factures
+                    </x-nav-link>
                 </div>
             </div>
             
@@ -92,6 +104,16 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('fournisseurs.index')" :active="request()->routeIs('fournisseurs.*')">
                 Fournisseurs
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('paiements.index')" :active="request()->routeIs('paiements.*')">
+                Paiements
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('repartitions.index')" :active="request()->routeIs('repartitions.*')">
+                Répartitions
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('factures.index')" :active="request()->routeIs('factures.*')">
+                Factures
             </x-responsive-nav-link>
         </div>
         
