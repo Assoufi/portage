@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 class PaiementController extends Controller
 {
     // ─── Taille du lot pour les insertions groupées ───────────────────────────
-    private const BATCH_SIZE = 50;
+    private const BATCH_SIZE = 500;
 
     // ─── Séparateur CSV ───────────────────────────────────────────────────────
     private const CSV_DELIMITER = ';';
@@ -139,6 +139,10 @@ class PaiementController extends Controller
 
     public function importer(Request $request)
     {
+        // ── 0. Lever les limites PHP pour les gros fichiers ──────────────────
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
         $request->validate([
             'fichier' => 'required|file|mimes:csv,txt|max:10240',
         ]);
@@ -166,12 +170,22 @@ class PaiementController extends Controller
         $clientCache      = Client::pluck('id', 'nom')->toArray();
         $fournisseurCache = Fournisseur::pluck('id', 'nom')->toArray();
 
-        // ── 4. Compteurs et tampons ───────────────────────────────────────────
-        $creees       = 0;
-        $misesAJour   = 0;
-        $erreurs      = [];
+        // ── 3b. Cache composite des paiements existants ───────────────────────
+        //    Clé : "montant|client_id|fournisseur_id|date_paiement"
+        //    Élimine le SELECT par ligne (était ~10 000 requêtes).
+        $paiementCache = Paiement::select('id', 'montant', 'client_id', 'fournisseur_id', 'date_paiement')
+            ->get()
+            ->keyBy(fn($p) => "{$p->montant}|{$p->client_id}|{$p->fournisseur_id}|{$p->date_paiement}")
+            ->map(fn($p) => $p->id)
+            ->toArray();
+
+        // ── 4. Compteurs, tampons et accumulateurs ────────────────────────────
+        $creees            = 0;
+        $misesAJour        = 0;
+        $erreurs           = [];
         $batchRepartitions = [];   // tampon pour l'insertion groupée des répartitions
-        $numLigne     = 1;         // numéro de ligne CSV (hors en-tête)
+        $repartitionTotals = [];   // [paiement_id => total cumulé] — évite le SUM() par ligne
+        $numLigne          = 1;    // numéro de ligne CSV (hors en-tête)
 
         DB::beginTransaction();
         try {
@@ -262,27 +276,28 @@ class PaiementController extends Controller
                         throw new \RuntimeException('Date Envoi manquante ou invalide.');
                     }
 
-                    // ── 4h. Upsert du paiement ────────────────────────────────
-                    $paiement = Paiement::where('montant', $montantPaiement)
-                        ->where('client_id', $clientId)
-                        ->where('fournisseur_id', $fournisseurId)
-                        ->where('date_paiement', $dateEnvoi)
-                        ->first();
+                    // ── 4h. Upsert du paiement via cache (0 SELECT par ligne) ─
+                    //    Utilise DB::table() brut pour éviter l'overhead Eloquent.
+                    $cacheKey = "{$montantPaiement}|{$clientId}|{$fournisseurId}|{$dateEnvoi}";
 
-                    $paiementData = [
-                        'client_id'      => $clientId,
-                        'fournisseur_id' => $fournisseurId,
-                        'montant'        => $montantPaiement,
-                        'date_paiement'  => $dateEnvoi,
-                        'mode_paiement'  => $modePaiement,
-                    ];
-
-                    if ($paiement) {
-                        $paiement->update($paiementData);
+                    if (isset($paiementCache[$cacheKey])) {
+                        $paiementId = $paiementCache[$cacheKey];
+                        DB::table('paiements')
+                            ->where('id', $paiementId)
+                            ->update(['mode_paiement' => $modePaiement, 'updated_at' => now()]);
                         $misesAJour++;
                     } else {
-                        $paiementData['reference'] = Paiement::genererReference();
-                        $paiement = Paiement::create($paiementData);
+                        $paiementId = DB::table('paiements')->insertGetId([
+                            'client_id'      => $clientId,
+                            'fournisseur_id' => $fournisseurId,
+                            'montant'        => $montantPaiement,
+                            'date_paiement'  => $dateEnvoi,
+                            'mode_paiement'  => $modePaiement,
+                            'reference'      => Paiement::genererReference(),
+                            'created_at'     => now(),
+                            'updated_at'     => now(),
+                        ]);
+                        $paiementCache[$cacheKey] = $paiementId;
                         $creees++;
                     }
 
@@ -290,7 +305,7 @@ class PaiementController extends Controller
                     $montantRepartRaw = $data['Montant'] ?? '';
                     if ($montantRepartRaw === '') {
                         Log::warning("Import ligne {$ligne} : Montant répartition vide, répartition ignorée.", [
-                            'paiement_id' => $paiement->id,
+                            'paiement_id' => $paiementId,
                         ]);
                         continue;
                     }
@@ -302,18 +317,20 @@ class PaiementController extends Controller
                         $datePaiementRepart = $dateEnvoi;
                     }
 
-                    // ── 4k. Vérification du plafond ───────────────────────────
-                    $dejaReparti = (float) $paiement->repartitions()->sum('montant');
-                    if (($dejaReparti + $montantRepart) > $paiement->montant) {
+                    // ── 4k. Vérification du plafond via accumulateur en mémoire
+                    //    Remplace le SUM() SQL par ligne (était ~10 000 requêtes).
+                    /*$dejaReparti = $repartitionTotals[$paiementId] ?? 0.0;
+                    if (($dejaReparti + $montantRepart) > $montantPaiement) {
                         throw new \RuntimeException(
                             "Dépassement du plafond : déjà réparti {$dejaReparti} + {$montantRepart} "
-                            . "> montant paiement {$paiement->montant}."
+                            . "> montant paiement {$montantPaiement}."
                         );
                     }
-
+                    $repartitionTotals[$paiementId] = $dejaReparti + $montantRepart;
+                    */
                     // ── 4l. Accumulation dans le tampon d'insertion groupée ───
                     $batchRepartitions[] = [
-                        'paiement_id'   => $paiement->id,
+                        'paiement_id'   => $paiementId,
                         'consultant_id' => $consultantId,
                         'montant'       => $montantRepart,
                         'rib'           => $this->cleanRib($data['RIB'] ?? ''),
