@@ -45,27 +45,45 @@ class PaiementController extends Controller
 
     public function index(Request $request)
     {
-        $query = Paiement::with(['client', 'fournisseur', 'mission']);
+        $query = Paiement::with(['client', 'fournisseur', 'mission.consultant']);
 
-        if ($request->filled('client_id'))      $query->parClient($request->client_id);
-        if ($request->filled('fournisseur_id')) $query->parFournisseur($request->fournisseur_id);
-        if ($request->filled('mode_paiement'))  $query->parModePaiement($request->mode_paiement);
-        if ($request->filled('statut'))         $query->where('statut', $request->statut === 'actif');
-        if ($request->filled('recherche'))      $query->recherche($request->recherche);
-
-        if ($request->filled('date_debut') && $request->filled('date_fin')) {
-            $query->parPeriode($request->date_debut, $request->date_fin);
+        if ($request->filled('client')) {
+            $query->whereHas('client', fn($q) => $q->where('nom', 'like', '%' . $request->client . '%'));
+        }
+        if ($request->filled('fournisseur')) {
+            $query->whereHas('fournisseur', fn($q) => $q->where('nom', 'like', '%' . $request->fournisseur . '%'));
+        }
+        if ($request->filled('consultant')) {
+            $query->whereHas('mission.consultant', fn($q) => $q->where('nom', 'like', '%' . $request->consultant . '%'));
+        }
+        if ($request->filled('capital')) {
+            $query->where('montant', 'like', '%' . str_replace(',', '.', $request->capital) . '%');
+        }
+        if ($request->filled('date_envoi')) {
+            $query->whereDate('date_paiement', $request->date_envoi);
+        }
+        if ($request->filled('date_paiement')) {
+            $query->whereHas('repartitions', fn($q) => $q->whereDate('date_paiement', $request->date_paiement));
+        }
+        if ($request->filled('mode_paiement')) {
+            $query->parModePaiement($request->mode_paiement);
+        }
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->statut === 'actif');
         }
 
         $sort      = $request->get('sort', 'date_paiement');
         $direction = $request->get('direction', 'desc');
         $query->orderBy($sort, $direction);
 
-        $paiements   = $query->paginate(15)->withQueryString();
-        $clients     = Client::actif()->orderBy('nom')->get();
-        $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
+        $paiements = $query->paginate(15)->withQueryString();
 
-        return view('paiements.index', compact('paiements', 'clients', 'fournisseurs'));
+        if ($request->ajax()) {
+            $html = view('paiements._table', compact('paiements'))->render();
+            return response()->json(['html' => $html]);
+        }
+
+        return view('paiements.index', compact('paiements'));
     }
 
     public function create()

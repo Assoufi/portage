@@ -23,128 +23,67 @@
 @section('content')
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
         <div class="p-6">
-            <form method="GET" action="{{ route('paiements.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <form id="search-form" method="GET" action="{{ route('paiements.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Consultant</label>
+                    <input type="text" name="consultant" value="{{ request('consultant') }}"
+                           class="search-input w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                           placeholder="Rechercher un consultant...">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Capital</label>
+                    <input type="text" name="capital" value="{{ request('capital') }}"
+                           class="search-input w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                           placeholder="Montant...">
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Client</label>
-                    <select name="client_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
-                        <option value="">Tous</option>
-                        @foreach($clients as $client)
-                            <option value="{{ $client->id }}" {{ request('client_id') == $client->id ? 'selected' : '' }}>
-                                {{ $client->nom }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <input type="text" name="client" value="{{ request('client') }}"
+                           class="search-input w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                           placeholder="Rechercher un client...">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Fournisseur</label>
-                    <select name="fournisseur_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
-                        <option value="">Tous</option>
-                        @foreach($fournisseurs as $fournisseur)
-                            <option value="{{ $fournisseur->id }}" {{ request('fournisseur_id') == $fournisseur->id ? 'selected' : '' }}>
-                                {{ $fournisseur->nom }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <input type="text" name="fournisseur" value="{{ request('fournisseur') }}"
+                           class="search-input w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                           placeholder="Rechercher un fournisseur...">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Date Envoi</label>
+                    <input type="date" name="date_envoi" value="{{ request('date_envoi') }}"
+                           class="search-input w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Date Paiement</label>
+                    <input type="date" name="date_paiement" value="{{ request('date_paiement') }}"
+                           class="search-input w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Mode</label>
-                    <select name="mode_paiement" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
-                        <option value="">Tous</option>
-                        <option value="virement" {{ request('mode_paiement') == 'virement' ? 'selected' : '' }}>Virement</option>
-                        <option value="cheque" {{ request('mode_paiement') == 'cheque' ? 'selected' : '' }}>Chèque</option>
-                        <option value="especes" {{ request('mode_paiement') == 'especes' ? 'selected' : '' }}>Espèces</option>
-                        <option value="carte" {{ request('mode_paiement') == 'carte' ? 'selected' : '' }}>Carte</option>
-                    </select>
+                    <input type="text" name="mode_paiement" value="{{ request('mode_paiement') }}"
+                           class="search-input w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                           placeholder="virement, cheque, especes...">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Statut</label>
-                    <select name="statut" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
-                        <option value="">Tous</option>
-                        <option value="actif" {{ request('statut') == 'actif' ? 'selected' : '' }}>Actif</option>
-                        <option value="inactif" {{ request('statut') == 'inactif' ? 'selected' : '' }}>Inactif</option>
-                    </select>
-                </div>
-
-                <div class="flex items-end">
-                    <button type="submit" class="w-full bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-                        Filtrer
-                    </button>
+                    <input type="text" name="statut" value="{{ request('statut') }}"
+                           class="search-input w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                           placeholder="actif ou inactif">
                 </div>
             </form>
         </div>
     </div>
 
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Réf.</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fournisseur</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($paiements as $paiement)
-                        <tr class="hover:bg-gray-50 transition duration-150">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-sm font-mono font-medium text-gray-900">{{ $paiement->reference }}</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{ $paiement->client->nom }}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">{{ $paiement->fournisseur->nom }}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $paiement->date_paiement_formatee }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                                {{ $paiement->montant_formate }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $paiement->mode_paiement_label }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {!! $paiement->statut_badge !!}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="{{ route('paiements.show', $paiement) }}"
-                                   class="text-blue-600 hover:text-blue-900 mr-3">Voir</a>
-                                <a href="{{ route('paiements.edit', $paiement) }}"
-                                   class="text-yellow-600 hover:text-yellow-900 mr-3">Modifier</a>
-                                <form action="{{ route('paiements.destroy', $paiement) }}" method="POST" class="inline-block">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit"
-                                            class="text-red-600 hover:text-red-900"
-                                            onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce paiement ?')">
-                                        Supprimer
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="px-6 py-4 text-center text-gray-500">
-                                Aucun paiement trouvé.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        <div class="px-6 py-4">
-            {{ $paiements->links() }}
+        <div id="paiements-table">
+            @include('paiements._table', ['paiements' => $paiements])
         </div>
     </div>
 
@@ -176,3 +115,66 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var searchInputs = document.querySelectorAll('.search-input');
+    var tableContainer = document.getElementById('paiements-table');
+    var searchForm = document.getElementById('search-form');
+    var searchUrl = '{{ route('paiements.index') }}';
+    var debounceTimer = null;
+
+    function performSearch() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+            var inputs = searchForm.querySelectorAll('input, select, textarea');
+            var params = new URLSearchParams();
+            for (var i = 0; i < inputs.length; i++) {
+                var el = inputs[i];
+                if (el.name && el.value.trim() !== '') {
+                    params.append(el.name, el.value.trim());
+                }
+            }
+
+            var qs = params.toString();
+            var url = qs ? searchUrl + '?' + qs : searchUrl;
+
+            tableContainer.classList.add('opacity-50');
+
+            fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+            .then(function (data) {
+                if (data.html) { tableContainer.innerHTML = data.html; }
+                window.history.replaceState({}, '', url);
+            })
+            .catch(function () { window.location.href = url; })
+            .finally(function () { tableContainer.classList.remove('opacity-50'); });
+        }, 300);
+    }
+
+    for (var i = 0; i < searchInputs.length; i++) {
+        searchInputs[i].addEventListener('input', performSearch);
+        searchInputs[i].addEventListener('change', performSearch);
+    }
+
+    tableContainer.addEventListener('click', function (e) {
+        var link = e.target.closest('a[href]');
+        if (!link || !link.closest('#pagination-links')) return;
+        e.preventDefault();
+        var url = link.getAttribute('href');
+        tableContainer.classList.add('opacity-50');
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function (data) {
+            if (data.html) { tableContainer.innerHTML = data.html; }
+            window.history.replaceState({}, '', url);
+        })
+        .catch(function () { window.location.href = url; })
+        .finally(function () { tableContainer.classList.remove('opacity-50'); });
+    });
+});
+</script>
+@endpush
