@@ -27,7 +27,7 @@ class Fournisseur extends Model
 
     protected $casts = [
         'statut' => 'boolean',
-        'taux' => 'decimal:2',
+        'taux' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime'
@@ -63,6 +63,11 @@ class Fournisseur extends Model
     }
 
     // Mutateurs
+    public function setTauxAttribute($value)
+    {
+        $this->attributes['taux'] = ($value === '' || $value === null) ? 0 : $value;
+    }
+
     public function setEmailAttribute($value)
     {
         $this->attributes['email'] = strtolower(trim($value));

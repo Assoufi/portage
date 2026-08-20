@@ -9,6 +9,7 @@ use App\Http\Controllers\MissionController;
 use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\RepartitionController;
 use App\Http\Controllers\FactureController;
+use App\Http\Controllers\StatsController;
 use Illuminate\Support\Facades\Route;
 
 // Routes publiques (authentification)
@@ -59,6 +60,12 @@ Route::middleware(['auth'])->group(function () {
         ->name('factures.marquer-reglee');
     Route::resource('factures', FactureController::class);
     
+    // Routes Stats
+    Route::get('/stats/prestations-non-declarees', [StatsController::class, 'prestationsNonDeclarees'])
+        ->name('stats.prestations-non-declarees');
+    Route::get('/stats/prestations-non-declarees/export', [StatsController::class, 'exportPrestationsNonDeclarees'])
+        ->name('stats.prestations-non-declarees.export');
+
     // Route pour le profil utilisateur (Breeze)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

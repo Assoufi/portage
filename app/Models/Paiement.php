@@ -27,8 +27,8 @@ class Paiement extends Model
     ];
 
     protected $casts = [
-        'montant' => 'decimal:2',
-        'montant_recu' => 'decimal:2',
+        'montant' => 'float',
+        'montant_recu' => 'float',
         'date_paiement' => 'date',
         'mode_paiement' => ModePaiement::class,
         'statut' => 'boolean',
@@ -119,6 +119,16 @@ class Paiement extends Model
     public function getCreatedAtFormateeAttribute(): string
     {
         return $this->created_at->format('d/m/Y H:i');
+    }
+
+    public function setMontantAttribute($value)
+    {
+        $this->attributes['montant'] = ($value === '' || $value === null) ? 0 : $value;
+    }
+
+    public function setMontantRecuAttribute($value)
+    {
+        $this->attributes['montant_recu'] = ($value === '' || $value === null) ? null : $value;
     }
 
     public function setReferenceAttribute($value)

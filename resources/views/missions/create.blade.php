@@ -48,6 +48,18 @@
                         <p x-show="errors.client_id" x-text="errors.client_id" class="text-red-500 text-xs mt-1"></p>
                     </div>
                     
+                    <!-- Titre -->
+                    <div>
+                        <label for="titre" class="block text-sm font-medium text-gray-700 mb-2">
+                            Titre
+                        </label>
+                        <input type="text" name="titre" id="titre" x-model="form.titre"
+                               placeholder="Ex: Mission développement web..."
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                               :class="errors.titre ? 'border-red-500' : 'border-gray-300'">
+                        <p x-show="errors.titre" x-text="errors.titre" class="text-red-500 text-xs mt-1"></p>
+                    </div>
+                    
                     <!-- Fournisseur -->
                     <div>
                         <label for="fournisseur_id" class="block text-sm font-medium text-gray-700 mb-2">
@@ -62,6 +74,18 @@
                             @endforeach
                         </select>
                         <p x-show="errors.fournisseur_id" x-text="errors.fournisseur_id" class="text-red-500 text-xs mt-1"></p>
+                    </div>
+                    
+                    <!-- Formule -->
+                    <div>
+                        <label for="formule" class="block text-sm font-medium text-gray-700 mb-2">
+                            Formule
+                        </label>
+                        <input type="text" name="formule" id="formule" x-model="form.formule"
+                               placeholder="Ex: Forfait, Journalier, Mensuel..."
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                               :class="errors.formule ? 'border-red-500' : 'border-gray-300'">
+                        <p x-show="errors.formule" x-text="errors.formule" class="text-red-500 text-xs mt-1"></p>
                     </div>
                     
                     <!-- Taux -->
@@ -196,6 +220,8 @@
                     consultant_id: '{{ old('consultant_id', '') }}',
                     client_id: '{{ old('client_id', '') }}',
                     fournisseur_id: '{{ old('fournisseur_id', '') }}',
+                    titre: '{{ old('titre', '') }}',
+                    formule: '{{ old('formule', '') }}',
                     taux: '{{ old('taux', '') }}',
                     tjm: '{{ old('tjm', '') }}',
                     prix_vente: '{{ old('prix_vente', '') }}',

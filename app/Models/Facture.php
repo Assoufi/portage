@@ -46,11 +46,11 @@ class Facture extends Model
         'date_echeance'       => 'date:Y-m-d',
         'date_reception'      => 'date:Y-m-d',
         'date_reglement'      => 'date:Y-m-d',
-        'montant'             => 'decimal:2',
-        'total_ht'            => 'decimal:2',
-        'tva'                 => 'decimal:2',
+        'montant'             => 'float',
+        'total_ht'            => 'float',
+        'tva'                 => 'float',
         'quantite'            => 'integer',
-        'prix_unitaire'       => 'decimal:2',
+        'prix_unitaire'       => 'float',
         'statut'              => 'boolean',
     ];
 
@@ -137,6 +137,31 @@ class Facture extends Model
     public function setRemarquesAttribute($value): void
     {
         $this->attributes['remarques'] = $value ? trim($value) : null;
+    }
+
+    public function setMontantAttribute($value): void
+    {
+        $this->attributes['montant'] = ($value === '' || $value === null) ? 0 : $value;
+    }
+
+    public function setTotalHtAttribute($value): void
+    {
+        $this->attributes['total_ht'] = ($value === '' || $value === null) ? null : $value;
+    }
+
+    public function setTvaAttribute($value): void
+    {
+        $this->attributes['tva'] = ($value === '' || $value === null) ? 20 : $value;
+    }
+
+    public function setPrixUnitaireAttribute($value): void
+    {
+        $this->attributes['prix_unitaire'] = ($value === '' || $value === null) ? null : $value;
+    }
+
+    public function setQuantiteAttribute($value): void
+    {
+        $this->attributes['quantite'] = ($value === '' || $value === null) ? null : (int) $value;
     }
 
     public static function genererNumeroFacture(): string

@@ -34,6 +34,11 @@ class MissionRequest extends FormRequest
                 'exists:fournisseurs,id',
                 Rule::exists('fournisseurs', 'id')->where('statut', true)
             ],
+            'titre' => [
+                'nullable',
+                'string',
+                'max:255'
+            ],
             'taux' => [
                 'required',
                 'numeric',
@@ -76,6 +81,11 @@ class MissionRequest extends FormRequest
                 'min:0',
                 'max:365'
             ],
+            'formule' => [
+                'nullable',
+                'string',
+                'max:255'
+            ],
             'remarques' => [
                 'nullable',
                 'string',
@@ -95,6 +105,8 @@ class MissionRequest extends FormRequest
             
             'fournisseur_id.required' => 'Le fournisseur est obligatoire.',
             'fournisseur_id.exists' => 'Le fournisseur sélectionné n\'existe pas ou est inactif.',
+            
+            'titre.max' => 'Le titre ne doit pas dépasser 255 caractères.',
             
             'taux.required' => 'Le taux est obligatoire.',
             'taux.numeric' => 'Le taux doit être un nombre.',

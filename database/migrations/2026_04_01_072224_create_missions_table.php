@@ -29,9 +29,9 @@ return new class extends Migration
                   ->onUpdate('cascade');
             
             // Champs métier
-            $table->decimal('taux', 10, 2);
-            $table->decimal('tjm', 10, 2); // Taux Journalier Moyen
-            $table->decimal('prix_vente', 10, 2);
+            $table->decimal('taux', 5, 2)->nullable();
+            $table->decimal('tjm', 10, 2)->default(0); // Taux Journalier Moyen
+            $table->decimal('prix_vente', 10, 2)->default(0);
             $table->date('date_debut');
             $table->date('date_fin')->nullable();
             $table->integer('delai_paiement')->default(30); // en jours
@@ -41,9 +41,12 @@ return new class extends Migration
             $table->softDeletes();
             
             // Index pour optimiser les requêtes
+            $table->index('consultant_id');
+            $table->index('client_id');
+            $table->index('fournisseur_id');
             $table->index('date_debut');
             $table->index('date_fin');
-            $table->index(['consultant_id', 'client_id']);
+            $table->index(['consultant_id', 'date_debut']);
             
             // Contrainte de validation : date_fin doit être >= date_debut (gérée au niveau applicatif)
         });

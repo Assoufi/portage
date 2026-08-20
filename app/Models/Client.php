@@ -25,7 +25,7 @@ class Client extends Model
 
     protected $casts = [
         'statut' => 'boolean',
-        'tva' => 'decimal:2',
+        'tva' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime'
@@ -67,6 +67,11 @@ class Client extends Model
     }
 
     // Mutateurs
+    public function setTvaAttribute($value)
+    {
+        $this->attributes['tva'] = ($value === '' || $value === null) ? 20 : $value;
+    }
+
     public function setNomAttribute($value)
     {
         $this->attributes['nom'] = ucwords(strtolower(trim($value)));

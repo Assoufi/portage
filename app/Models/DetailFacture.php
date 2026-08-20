@@ -21,10 +21,10 @@ class DetailFacture extends Model
 
     protected $casts = [
         'quantite'       => 'integer',
-        'prix_unitaire'  => 'decimal:2',
-        'total_ht'       => 'decimal:2',
-        'tva'            => 'decimal:2',
-        'montant_ttc'    => 'decimal:2',
+        'prix_unitaire'  => 'float',
+        'total_ht'       => 'float',
+        'tva'            => 'float',
+        'montant_ttc'    => 'float',
     ];
 
     protected $attributes = [
@@ -35,6 +35,31 @@ class DetailFacture extends Model
     public function facture(): BelongsTo
     {
         return $this->belongsTo(Facture::class, 'facture_id');
+    }
+
+    public function setQuantiteAttribute($value): void
+    {
+        $this->attributes['quantite'] = ($value === '' || $value === null) ? 1 : (int) $value;
+    }
+
+    public function setPrixUnitaireAttribute($value): void
+    {
+        $this->attributes['prix_unitaire'] = ($value === '' || $value === null) ? 0 : $value;
+    }
+
+    public function setTotalHtAttribute($value): void
+    {
+        $this->attributes['total_ht'] = ($value === '' || $value === null) ? 0 : $value;
+    }
+
+    public function setTvaAttribute($value): void
+    {
+        $this->attributes['tva'] = ($value === '' || $value === null) ? 20 : $value;
+    }
+
+    public function setMontantTtcAttribute($value): void
+    {
+        $this->attributes['montant_ttc'] = ($value === '' || $value === null) ? 0 : $value;
     }
 
     public function getMontantTtcFormateAttribute(): string

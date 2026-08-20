@@ -28,6 +28,10 @@ class MissionController extends Controller
             $query->parClient($request->client_id);
         }
 
+        if ($request->filled('fournisseur_id')) {
+            $query->where('fournisseur_id', $request->fournisseur_id);
+        }
+
         if ($request->filled('statut')) {
             switch ($request->statut) {
                 case 'encours':
@@ -48,18 +52,21 @@ class MissionController extends Controller
         $query->orderBy($sort, $direction);
 
         $missions = $query->paginate(15)->withQueryString();
-        $consultants = Consultant::actif()->orderBy('nom')->get();
-        $clients = Client::actif()->orderBy('email')->get();
 
-        return view('missions.index', compact('missions', 'consultants', 'clients'));
+        // Uniquement les consultants/clients/fournisseurs ayant des missions en cours
+        $consultants = Consultant::whereHas('missions', fn($q) => $q->enCours())->orderBy('nom')->get();
+        $clients = Client::whereHas('missions', fn($q) => $q->enCours())->orderBy('nom')->get();
+        $fournisseurs = Fournisseur::whereHas('missions', fn($q) => $q->enCours())->orderBy('nom')->get();
+
+        return view('missions.index', compact('missions', 'consultants', 'clients', 'fournisseurs'));
     }
 
     public function create()
     {
         $mission = new Mission();
         $consultants = Consultant::actif()->orderBy('nom')->get();
-        $clients = Client::actif()->orderBy('email')->get();
-        $fournisseurs = Fournisseur::actif()->orderBy('email')->get();
+        $clients = Client::actif()->orderBy('nom')->get();
+        $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
 
         return view('missions.create', compact('mission', 'consultants', 'clients', 'fournisseurs'));
     }

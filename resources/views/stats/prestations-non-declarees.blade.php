@@ -1,25 +1,42 @@
-{{-- resources/views/missions/index.blade.php --}}
 @extends('layouts.app')
 
-@section('title', 'Gestion des Missions')
+@section('title', 'Prestations non déclarées')
 
 @section('header')
     <div class="flex justify-between items-center">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Missions
+            Prestations non déclarées
         </h2>
-        <a href="{{ route('missions.create') }}" 
-           class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-            + Nouvelle Mission
-        </a>
+        <div class="flex items-center space-x-2">
+            <a href="{{ route('stats.prestations-non-declarees.export', request()->query()) }}"
+               class="inline-flex items-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export Excel
+            </a>
+            <a href="{{ route('missions.index') }}"
+               class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                ← Retour aux missions
+            </a>
+        </div>
     </div>
 @endsection
 
 @section('content')
-    <!-- Filtres -->
+    <!-- Zone de recherche et filtres -->
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
         <div class="p-6">
-            <form method="GET" action="{{ route('missions.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <form method="GET" action="{{ route('stats.prestations-non-declarees') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <!-- Recherche par nom/email -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Recherche</label>
+                    <input type="text" name="search" value="{{ request('search') }}"
+                           placeholder="Nom consultant, email..."
+                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                </div>
+
+                <!-- Filtre par consultant -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Consultant</label>
                     <select name="consultant_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
@@ -31,7 +48,8 @@
                         @endforeach
                     </select>
                 </div>
-                
+
+                <!-- Filtre par client -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Client</label>
                     <select name="client_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
@@ -43,7 +61,8 @@
                         @endforeach
                     </select>
                 </div>
-                
+
+                <!-- Filtre par fournisseur -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Fournisseur</label>
                     <select name="fournisseur_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
@@ -56,44 +75,44 @@
                     </select>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Statut</label>
-                    <select name="statut" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
-                        <option value="">Tous</option>
-                        <option value="encours" {{ request('statut') == 'encours' ? 'selected' : '' }}>En cours</option>
-                        <option value="terminees" {{ request('statut') == 'terminees' ? 'selected' : '' }}>Terminées</option>
-                    </select>
-                </div>
-                
-                <div class="flex items-end">
-                    <button type="submit" class="w-full bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                <!-- Boutons -->
+                <div class="flex items-end space-x-2">
+                    <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Filtrer
                     </button>
+                    @if(request()->anyFilled(['search', 'consultant_id', 'client_id', 'fournisseur_id']))
+                        <a href="{{ route('stats.prestations-non-declarees') }}" class="flex-1 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 text-center">
+                            Réinitialiser
+                        </a>
+                    @endif
                 </div>
             </form>
         </div>
     </div>
-    
-    <!-- Tableau des missions -->
+
+    <!-- Tableau des missions non déclarées -->
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
-                    <tr>                        
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Titre
+                        </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Consultant
-                        </th>                        
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Dates
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Formule
+                            Client
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Montants
+                            Email Consultant
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Statut
+                            Date début
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date fin
                         </th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Actions
@@ -102,41 +121,29 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($missions as $mission)
-                        <tr class="hover:bg-gray-50 transition duration-150">                            
+                        <tr class="hover:bg-gray-50 transition duration-150">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{ $mission->consultant->nom }}</div>
-                                <div class="text-sm text-gray-500">{{ $mission->titre ?: 'Mission #' . $mission->id }}</div>
-                            </td>                            
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">
-                                    {{ \Carbon\Carbon::parse($mission->date_debut)->format('d/m/Y') }}
-                                    @if($mission->date_fin)
-                                        → {{ \Carbon\Carbon::parse($mission->date_fin)->format('d/m/Y') }}
-                                    @endif
-                                </div>
-                                <div class="text-sm text-gray-500">
-                                    Durée: {{ $mission->duree_formatted }}
-                                </div>
+                                <div class="text-sm font-medium text-gray-900">{{ $mission->titre ?: 'Mission #' . $mission->id }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">
-                                    {{ $mission->formule_formatted }}
-                                </div>
+                                <div class="text-sm font-medium text-gray-900">{{ $mission->consultant->nom }}</div>                                
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">
-                                    {{ number_format($mission->prix_vente, 2) }} {{ $mission->client->devise }}
-                                </div>
-                                <div class="text-sm text-gray-500">
-                                    TJM: {{ number_format($mission->tjm, 2) }}
-                                </div>
+                                <div class="text-sm font-medium text-gray-900">{{ $mission->client->nom }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                {!! $mission->statut_badge !!}
+                                <div class="text-sm text-gray-900">{{ $mission->consultant->email }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ \Carbon\Carbon::parse($mission->date_debut)->format('d/m/Y') }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs font-semibold text-orange-800 bg-orange-200 rounded-full">
+                                    Non déclarée
+                                </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex items-center justify-end space-x-2">
-                                    {{-- Voir --}}
                                     <a href="{{ route('missions.show', $mission) }}"
                                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-800 transition duration-150"
                                        title="Voir">
@@ -145,7 +152,6 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
                                     </a>
-                                    {{-- Modifier --}}
                                     <a href="{{ route('missions.edit', $mission) }}"
                                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-50 text-yellow-600 hover:bg-yellow-100 hover:text-yellow-800 transition duration-150"
                                        title="Modifier">
@@ -153,33 +159,20 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
                                     </a>
-                                    {{-- Supprimer --}}
-                                    <form action="{{ route('missions.destroy', $mission) }}" method="POST" class="inline-block">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                                class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 transition duration-150"
-                                                title="Supprimer"
-                                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette mission ?')">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
-                                    </form>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-4 text-center text-gray-500">
-                                Aucune mission trouvée.
+                            <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                                Aucune prestation non déclarée trouvée.
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        
+
         <div class="px-6 py-4">
             {{ $missions->links() }}
         </div>

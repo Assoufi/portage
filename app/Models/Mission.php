@@ -18,6 +18,8 @@ class Mission extends Model
         'consultant_id',
         'client_id',
         'fournisseur_id',
+        'titre',
+        'formule',
         'taux',
         'tjm',
         'prix_vente',
@@ -28,9 +30,9 @@ class Mission extends Model
     ];
 
     protected $casts = [
-        'taux' => 'decimal:2',
-        'tjm' => 'decimal:2',
-        'prix_vente' => 'decimal:2',
+        'taux' => 'float',
+        'tjm' => 'float',
+        'prix_vente' => 'float',
         'date_debut' => 'date',
         'date_fin' => 'date',
         'delai_paiement' => 'integer',
@@ -98,7 +100,7 @@ class Mission extends Model
 
     public function getMargeAttribute(): float
     {
-        return $this->prix_vente - ($this->tjm * $this->taux);
+        return $this->prix_vente - ($this->tjm * ($this->taux ?? 0));
     }
 
     public function getMargeFormattedAttribute(): string
@@ -114,7 +116,38 @@ class Mission extends Model
         return $this->date_fin->copy()->addDays($this->delai_paiement);
     }
 
+    // Accesseurs formule
+    public function getFormuleFormattedAttribute(): string
+    {
+        return $this->formule ?? 'Non définie';
+    }
+
     // Mutateurs
+    public function setTitreAttribute($value)
+    {
+        $this->attributes['titre'] = ($value === '' || $value === null) ? null : trim($value);
+    }
+
+    public function setFormuleAttribute($value)
+    {
+        $this->attributes['formule'] = ($value === '' || $value === null) ? null : trim($value);
+    }
+
+    public function setTauxAttribute($value)
+    {
+        $this->attributes['taux'] = ($value === '') ? null : $value;
+    }
+
+    public function setTjmAttribute($value)
+    {
+        $this->attributes['tjm'] = ($value === '' || $value === null) ? 0 : $value;
+    }
+
+    public function setPrixVenteAttribute($value)
+    {
+        $this->attributes['prix_vente'] = ($value === '' || $value === null) ? 0 : $value;
+    }
+
     public function setDateDebutAttribute($value)
     {
         $this->attributes['date_debut'] = $value ? Carbon::parse($value) : null;
@@ -128,14 +161,26 @@ class Mission extends Model
     // Scopes
     public function scopeEnCours($query)
     {
-        return $query->whereNull('date_fin')
-                     ->orWhere('date_fin', '>=', now());
+        return $query->where(function ($q) {
+                $q->whereNull('date_debut')
+                  ->orWhere('date_debut', '<=', now());
+            })
+            ->where(function ($q) {
+                $q->whereNull('date_fin')
+                  ->orWhere('date_fin', '>', now());
+            });
     }
 
     public function scopeTerminees($query)
     {
-        return $query->whereNotNull('date_fin')
-                     ->where('date_fin', '<', now());
+        return $query->where(function ($q) {
+                $q->whereNotNull('date_debut')
+                  ->where('date_debut', '<=', now());
+            })
+            ->where(function ($q) {
+                $q->whereNotNull('date_fin')
+                  ->where('date_fin', '<', now());
+            });
     }
 
     public function scopeParPeriode($query, $debut, $fin)

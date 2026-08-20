@@ -6,7 +6,7 @@
 @section('header')
     <div class="flex justify-between items-center">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Mission #{{ $mission->id }}
+            {{ $mission->titre ?: 'Mission #' . $mission->id }}
         </h2>
         <div class="space-x-2">
             <a href="{{ route('missions.edit', $mission) }}" 
@@ -38,18 +38,28 @@
                         
                         <div>
                             <p class="text-sm text-gray-600">Client</p>
-                            <p class="font-medium">{{ $mission->client->email }}</p>
+                            <p class="font-medium">{{ $mission->client->nom }}</p>
                             <p class="text-sm text-gray-500">ICE: {{ $mission->client->ice }}</p>
                         </div>
                         
                         <div>
                             <p class="text-sm text-gray-600">Fournisseur</p>
-                            <p class="font-medium">{{ $mission->fournisseur->email }}</p>
+                            <p class="font-medium">{{ $mission->fournisseur->nom }}</p>
                         </div>
                         
                         <div>
                             <p class="text-sm text-gray-600">Statut</p>
                             {!! $mission->statut_badge !!}
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-600">Titre</p>
+                            <p class="font-medium">{{ $mission->titre ?: 'Non défini' }}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-600">Formule</p>
+                            <p class="font-medium">{{ $mission->formule_formatted }}</p>
                         </div>
                     </div>
                     

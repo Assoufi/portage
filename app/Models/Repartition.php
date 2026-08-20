@@ -26,7 +26,7 @@ class Repartition extends Model
     ];
 
     protected $casts = [
-        'montant' => 'decimal:2',
+        'montant' => 'float',
         'date_paiement' => 'date',
         'mode_paiement' => ModePaiement::class,
         'created_at' => 'datetime',
@@ -66,6 +66,11 @@ class Repartition extends Model
     public function getCreatedAtFormateeAttribute(): string
     {
         return $this->created_at->format('d/m/Y H:i');
+    }
+
+    public function setMontantAttribute($value)
+    {
+        $this->attributes['montant'] = ($value === '' || $value === null) ? 0 : $value;
     }
 
     public function setRemarquesAttribute($value)

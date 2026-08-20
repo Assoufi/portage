@@ -48,7 +48,7 @@
                             <option value="">Sélectionner un client</option>
                             @foreach($clients as $client)
                                 <option value="{{ $client->id }}" {{ old('client_id', $mission->client_id) == $client->id ? 'selected' : '' }}>
-                                    {{ $client->email }} - {{ $client->devise }}
+                                    {{ $client->nom }} 
                                 </option>
                             @endforeach
                         </select>
@@ -68,11 +68,39 @@
                             <option value="">Sélectionner un fournisseur</option>
                             @foreach($fournisseurs as $fournisseur)
                                 <option value="{{ $fournisseur->id }}" {{ old('fournisseur_id', $mission->fournisseur_id) == $fournisseur->id ? 'selected' : '' }}>
-                                    {{ $fournisseur->email }}
+                                    {{ $fournisseur->nom }}
                                 </option>
                             @endforeach
                         </select>
                         @error('fournisseur_id')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    
+                    <!-- Titre -->
+                    <div>
+                        <label for="titre" class="block text-sm font-medium text-gray-700 mb-2">
+                            Titre
+                        </label>
+                        <input type="text" name="titre" id="titre"
+                               value="{{ old('titre', $mission->titre) }}"
+                               placeholder="Ex: Mission développement web..."
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('titre') border-red-500 @enderror">
+                        @error('titre')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    
+                    <!-- Formule -->
+                    <div>
+                        <label for="formule" class="block text-sm font-medium text-gray-700 mb-2">
+                            Formule
+                        </label>
+                        <input type="text" name="formule" id="formule" 
+                               value="{{ old('formule', $mission->formule) }}"
+                               placeholder="Ex: Forfait, Journalier, Mensuel..."
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('formule') border-red-500 @enderror">
+                        @error('formule')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
