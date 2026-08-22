@@ -23,7 +23,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Recherche</label>
                     <input type="text" name="search" value="{{ request('search') }}" 
-                           placeholder="Nom, email, ICE ou adresse..."
+                           placeholder="Nom ou email..."
                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                 </div>
                 
@@ -79,8 +79,6 @@
                             </a>
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ICE</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Adresse</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">TVA</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Devise</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Statut</th>
@@ -96,12 +94,6 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm text-gray-900">{{ $client->email }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <code class="text-sm bg-gray-100 px-2 py-1 rounded">{{ $client->ice }}</code>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm text-gray-900 max-w-xs truncate">{{ $client->adresse }}</div>
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <span class="text-sm">{{ $client->tva_formatted }}</span>
@@ -146,7 +138,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                                 Aucun client trouvé.
                                 <a href="{{ route('clients.create') }}" class="text-blue-600 hover:text-blue-900 ml-2">Créer un client</a>
                             </td>

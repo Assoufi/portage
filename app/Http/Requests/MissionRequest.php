@@ -39,8 +39,8 @@ class MissionRequest extends FormRequest
                 'string',
                 'max:255'
             ],
-            'taux' => [
-                'required',
+            'taux' => [                
+                'nullable',
                 'numeric',
                 'min:0',
                 'max:999999.99',
@@ -58,25 +58,19 @@ class MissionRequest extends FormRequest
                 'numeric',
                 'min:0',
                 'max:9999999.99',
-                'regex:/^\d+(\.\d{1,2})?$/',
-                function ($attribute, $value, $fail) {
-                    if ($value <= ($this->tjm * $this->taux)) {
-                        $fail('Le prix de vente doit être supérieur au coût total (TJM × Taux).');
-                    }
-                }
+                'regex:/^\d+(\.\d{1,2})?$/'
             ],
             'date_debut' => [
                 'required',
-                'date',
-                'after_or_equal:today'
+                'date',                
             ],
             'date_fin' => [
                 'nullable',
                 'date',
                 'after_or_equal:date_debut'
             ],
-            'delai_paiement' => [
-                'required',
+            'delai_paiement' => [                
+                'nullable',
                 'integer',
                 'min:0',
                 'max:365'
@@ -108,7 +102,6 @@ class MissionRequest extends FormRequest
             
             'titre.max' => 'Le titre ne doit pas dépasser 255 caractères.',
             
-            'taux.required' => 'Le taux est obligatoire.',
             'taux.numeric' => 'Le taux doit être un nombre.',
             'taux.min' => 'Le taux doit être supérieur ou égal à 0.',
             
@@ -127,7 +120,6 @@ class MissionRequest extends FormRequest
             'date_fin.date' => 'La date de fin doit être une date valide.',
             'date_fin.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
             
-            'delai_paiement.required' => 'Le délai de paiement est obligatoire.',
             'delai_paiement.integer' => 'Le délai de paiement doit être un nombre entier.',
             'delai_paiement.min' => 'Le délai de paiement doit être supérieur ou égal à 0.',
             'delai_paiement.max' => 'Le délai de paiement ne peut pas dépasser 365 jours.',
@@ -143,14 +135,6 @@ class MissionRequest extends FormRequest
             if ($this->date_debut && $this->date_fin) {
                 if (strtotime($this->date_fin) < strtotime($this->date_debut)) {
                     $validator->errors()->add('date_fin', 'La date de fin doit être postérieure ou égale à la date de début.');
-                }
-            }
-
-            // Vérifier la rentabilité de la mission
-            if ($this->tjm && $this->taux && $this->prix_vente) {
-                $coutTotal = $this->tjm * $this->taux;
-                if ($this->prix_vente <= $coutTotal) {
-                    $validator->errors()->add('prix_vente', 'Le prix de vente doit être supérieur au coût total (' . number_format($coutTotal, 2) . ' ' . $this->getClientDevise() . ').');
                 }
             }
         });

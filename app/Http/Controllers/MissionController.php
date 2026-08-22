@@ -20,8 +20,23 @@ class MissionController extends Controller
     {
         $query = Mission::with(['consultant', 'client', 'fournisseur']);
 
+        // Recherche générale multi-champs
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('consultant', fn($q) => $q->recherche($search))
+                  ->orWhereHas('client', fn($q) => $q->recherche($search))
+                  ->orWhereHas('fournisseur', fn($q) => $q->recherche($search))
+                  ->orWhere('titre', 'LIKE', "%{$search}%")
+                  ->orWhere('formule', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Filtre par consultant (via ID ou nom)
         if ($request->filled('consultant_id')) {
             $query->parConsultant($request->consultant_id);
+        } elseif ($request->filled('consultant_nom')) {
+            $query->whereHas('consultant', fn($q) => $q->where('nom', 'LIKE', "%{$request->consultant_nom}%"));
         }
 
         if ($request->filled('client_id')) {
@@ -66,7 +81,7 @@ class MissionController extends Controller
         $mission = new Mission();
         $consultants = Consultant::actif()->orderBy('nom')->get();
         $clients = Client::actif()->orderBy('nom')->get();
-        $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
+        $fournisseurs = Fournisseur::orderBy('nom')->get();
 
         return view('missions.create', compact('mission', 'consultants', 'clients', 'fournisseurs'));
     }
@@ -110,7 +125,7 @@ class MissionController extends Controller
     {
         $consultants = Consultant::actif()->orderBy('nom')->get();
         $clients = Client::actif()->orderBy('email')->get();
-        $fournisseurs = Fournisseur::actif()->orderBy('email')->get();
+        $fournisseurs = Fournisseur::orderBy('nom')->get();
 
         return view('missions.edit', compact('mission', 'consultants', 'clients', 'fournisseurs'));
     }

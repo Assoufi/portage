@@ -20,7 +20,10 @@ class Client extends Model
         'ice',
         'tva',
         'devise',
-        'statut'
+        'statut',
+        'contact',
+        'periodicite',
+        'mode_livraison'
     ];
 
     protected $casts = [

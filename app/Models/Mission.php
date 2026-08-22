@@ -57,6 +57,11 @@ class Mission extends Model
         return $this->belongsTo(Fournisseur::class);
     }
 
+    public function factures()
+    {
+        return $this->hasMany(Facture::class, 'mission_id');
+    }
+
     // Accesseurs
     public function getDureeAttribute(): ?int
     {

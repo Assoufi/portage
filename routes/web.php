@@ -65,6 +65,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('stats.prestations-non-declarees');
     Route::get('/stats/prestations-non-declarees/export', [StatsController::class, 'exportPrestationsNonDeclarees'])
         ->name('stats.prestations-non-declarees.export');
+    Route::post('/stats/prestations-non-declarees/notifier', [StatsController::class, 'notifierPrestationsNonDeclarees'])
+        ->name('stats.prestations-non-declarees.notifier');
 
     // Route pour le profil utilisateur (Breeze)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

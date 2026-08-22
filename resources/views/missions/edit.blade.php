@@ -67,8 +67,9 @@
                                 required>
                             <option value="">Sélectionner un fournisseur</option>
                             @foreach($fournisseurs as $fournisseur)
-                                <option value="{{ $fournisseur->id }}" {{ old('fournisseur_id', $mission->fournisseur_id) == $fournisseur->id ? 'selected' : '' }}>
-                                    {{ $fournisseur->nom }}
+                                @php $isSelected = old('fournisseur_id', $mission->fournisseur_id) == $fournisseur->id; @endphp
+                                <option value="{{ $fournisseur->id }}" {{ $isSelected ? 'selected' : '' }} {{ !$fournisseur->statut && !$isSelected ? 'disabled' : '' }}>
+                                    {{ $fournisseur->nom }}{{ $fournisseur->statut ? '' : ' [Inactif]' }}
                                 </option>
                             @endforeach
                         </select>
@@ -108,12 +109,11 @@
                     <!-- Taux -->
                     <div>
                         <label for="taux" class="block text-sm font-medium text-gray-700 mb-2">
-                            Taux (jours) *
+                            Taux (jours)
                         </label>
                         <input type="number" name="taux" id="taux" step="0.01" 
                                value="{{ old('taux', $mission->taux) }}"
-                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('taux') border-red-500 @enderror"
-                               required>
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('taux') border-red-500 @enderror">
                         @error('taux')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
@@ -179,12 +179,11 @@
                     <!-- Délai paiement -->
                     <div>
                         <label for="delai_paiement" class="block text-sm font-medium text-gray-700 mb-2">
-                            Délai de paiement (jours) *
+                            Délai de paiement (jours)
                         </label>
                         <input type="number" name="delai_paiement" id="delai_paiement" 
                                value="{{ old('delai_paiement', $mission->delai_paiement) }}"
-                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('delai_paiement') border-red-500 @enderror"
-                               required>
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('delai_paiement') border-red-500 @enderror">
                         @error('delai_paiement')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
@@ -220,7 +219,6 @@
 
 @push('scripts')
 <script>
-    // Script identique à celui du create
     document.addEventListener('DOMContentLoaded', function() {
         const tauxInput = document.getElementById('taux');
         const tjmInput = document.getElementById('tjm');
@@ -229,6 +227,17 @@
         const dateDebut = document.getElementById('date_debut');
         const dateFin = document.getElementById('date_fin');
         const dateError = document.getElementById('dateError');
+        
+        function calculateTJM() {
+            const taux = parseFloat(tauxInput.value) || 0;
+            const prixVente = parseFloat(prixVenteInput.value) || 0;
+            const tjm = parseFloat(tjmInput.value) || 0;
+            
+            if (taux > 0 && prixVente > 0 && !tjmInput.value) {
+                const calculatedTJM = prixVente * (1 - taux / 100);
+                tjmInput.value = calculatedTJM.toFixed(2);
+            }
+        }
         
         function calculateMarge() {
             const taux = parseFloat(tauxInput.value) || 0;
@@ -243,7 +252,7 @@
                 if (marge > 0) {
                     margeInfo.innerHTML = `<span class="text-green-600">✓ Marge bénéficiaire: ${marge.toFixed(2)} (${margePourcentage.toFixed(1)}%)</span>`;
                 } else {
-                    margeInfo.innerHTML = `<span class="text-red-600">⚠ Marge négative: ${marge.toFixed(2)} (${margePourcentage.toFixed(1)}%)</span>`;
+                    margeInfo.innerHTML = `<span class="text-orange-600">⚠ Marge négative: ${marge.toFixed(2)} (${margePourcentage.toFixed(1)}%)</span>`;
                 }
             } else {
                 margeInfo.innerHTML = '';
@@ -264,9 +273,15 @@
             return true;
         }
         
-        tauxInput.addEventListener('input', calculateMarge);
+        tauxInput.addEventListener('input', function() {
+            calculateTJM();
+            calculateMarge();
+        });
         tjmInput.addEventListener('input', calculateMarge);
-        prixVenteInput.addEventListener('input', calculateMarge);
+        prixVenteInput.addEventListener('input', function() {
+            calculateTJM();
+            calculateMarge();
+        });
         dateFin.addEventListener('change', validateDates);
         dateDebut.addEventListener('change', validateDates);
         
@@ -277,6 +292,7 @@
             }
         });
         
+        calculateTJM();
         calculateMarge();
     });
 </script>

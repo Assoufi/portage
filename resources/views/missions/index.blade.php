@@ -19,17 +19,27 @@
     <!-- Filtres -->
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
         <div class="p-6">
-            <form method="GET" action="{{ route('missions.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <form method="GET" action="{{ route('missions.index') }}" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+                <!-- Recherche générale -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Recherche globale</label>
+                    <input type="text" name="search" id="globalSearch" 
+                           value="{{ request('search') }}" 
+                           placeholder="Consultant, Client, Fournisseur, Titre, Formule..."
+                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                </div>
+
+                <!-- Consultant avec autocomplétion AJAX -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Consultant</label>
-                    <select name="consultant_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
-                        <option value="">Tous</option>
-                        @foreach($consultants as $consultant)
-                            <option value="{{ $consultant->id }}" {{ request('consultant_id') == $consultant->id ? 'selected' : '' }}>
-                                {{ $consultant->nom }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="relative">
+                        <input type="text" name="consultant_nom" id="consultantSearch" 
+                               value="{{ request('consultant_nom') }}" 
+                               placeholder="Saisir le nom..."
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                        <input type="hidden" name="consultant_id" id="consultantId" value="{{ request('consultant_id') }}">
+                        <div id="consultantSuggestions" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-60 overflow-auto"></div>
+                    </div>
                 </div>
                 
                 <div>
@@ -185,3 +195,121 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const consultantInput = document.getElementById('consultantSearch');
+        const consultantIdInput = document.getElementById('consultantId');
+        const suggestionsContainer = document.getElementById('consultantSuggestions');
+        
+        let debounceTimer;
+        let selectedIndex = -1;
+        
+        consultantInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            clearTimeout(debounceTimer);
+            
+            if (query.length < 2) {
+                hideSuggestions();
+                consultantIdInput.value = '';
+                return;
+            }
+            
+            debounceTimer = setTimeout(() => {
+                fetchConsultants(query);
+            }, 300);
+        });
+        
+        consultantInput.addEventListener('focus', function() {
+            if (this.value.trim().length >= 2) {
+                fetchConsultants(this.value.trim());
+            }
+        });
+        
+        consultantInput.addEventListener('keydown', function(e) {
+            const items = suggestionsContainer.querySelectorAll('.suggestion-item');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                updateSelection(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, -1);
+                updateSelection(items);
+            } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                e.preventDefault();
+                selectConsultant(items[selectedIndex]);
+            } else if (e.key === 'Escape') {
+                hideSuggestions();
+            }
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!consultantInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+                hideSuggestions();
+            }
+        });
+        
+        function fetchConsultants(query) {
+            fetch(`/api/consultants/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    displaySuggestions(data);
+                })
+                .catch(error => {
+                    console.error('Erreur recherche consultants:', error);
+                });
+        }
+        
+        function displaySuggestions(consultants) {
+            if (consultants.length === 0) {
+                suggestionsContainer.innerHTML = '<div class="px-4 py-2 text-gray-500 text-sm">Aucun consultant trouvé</div>';
+                suggestionsContainer.classList.remove('hidden');
+                return;
+            }
+            
+            suggestionsContainer.innerHTML = consultants.map((c, index) => `
+                <div class="suggestion-item px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
+                     data-id="${c.id}" 
+                     data-nom="${c.nom}"
+                     data-email="${c.email}">
+                    <div class="font-medium text-gray-900">${c.nom}</div>
+                    <div class="text-xs text-gray-500">${c.email}</div>
+                </div>
+            `).join('');
+            
+            suggestionsContainer.classList.remove('hidden');
+            selectedIndex = -1;
+            
+            suggestionsContainer.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', () => selectConsultant(item));
+            });
+        }
+        
+        function updateSelection(items) {
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('bg-blue-50');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('bg-blue-50');
+                }
+            });
+        }
+        
+        function selectConsultant(item) {
+            consultantInput.value = item.dataset.nom;
+            consultantIdInput.value = item.dataset.id;
+            hideSuggestions();
+        }
+        
+        function hideSuggestions() {
+            suggestionsContainer.classList.add('hidden');
+            selectedIndex = -1;
+        }
+    });
+</script>
+@endpush

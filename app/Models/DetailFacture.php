@@ -14,22 +14,15 @@ class DetailFacture extends Model
         'designation',
         'quantite',
         'prix_unitaire',
-        'total_ht',
-        'tva',
-        'montant_ttc',
     ];
 
     protected $casts = [
         'quantite'       => 'integer',
         'prix_unitaire'  => 'float',
-        'total_ht'       => 'float',
-        'tva'            => 'float',
-        'montant_ttc'    => 'float',
     ];
 
     protected $attributes = [
         'quantite' => 1,
-        'tva'      => 20.00,
     ];
 
     public function facture(): BelongsTo
@@ -45,31 +38,6 @@ class DetailFacture extends Model
     public function setPrixUnitaireAttribute($value): void
     {
         $this->attributes['prix_unitaire'] = ($value === '' || $value === null) ? 0 : $value;
-    }
-
-    public function setTotalHtAttribute($value): void
-    {
-        $this->attributes['total_ht'] = ($value === '' || $value === null) ? 0 : $value;
-    }
-
-    public function setTvaAttribute($value): void
-    {
-        $this->attributes['tva'] = ($value === '' || $value === null) ? 20 : $value;
-    }
-
-    public function setMontantTtcAttribute($value): void
-    {
-        $this->attributes['montant_ttc'] = ($value === '' || $value === null) ? 0 : $value;
-    }
-
-    public function getMontantTtcFormateAttribute(): string
-    {
-        return number_format($this->montant_ttc ?? 0, 2, ',', ' ');
-    }
-
-    public function getTotalHtFormateAttribute(): string
-    {
-        return number_format($this->total_ht ?? 0, 2, ',', ' ');
     }
 
     public function getPrixUnitaireFormateAttribute(): string

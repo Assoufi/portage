@@ -180,4 +180,20 @@ class ConsultantController extends Controller
         // Logique d'export CSV/Excel à implémenter
         return response()->json($consultants);
     }
+
+    /**
+     * Recherche AJAX pour l'autocomplétion
+     */
+    public function search(Request $request)
+    {
+        $query = $request->get('q', '');
+        
+        $consultants = Consultant::actif()
+            ->when($query, fn($q) => $q->recherche($query))
+            ->orderBy('nom')
+            ->limit(10)
+            ->get(['id', 'nom', 'email']);
+        
+        return response()->json($consultants);
+    }
 }

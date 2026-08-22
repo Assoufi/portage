@@ -8,6 +8,22 @@
             Prestations non déclarées
         </h2>
         <div class="flex items-center space-x-2">
+            <form action="{{ route('stats.prestations-non-declarees.notifier') }}" method="POST" class="inline-block"
+                  onsubmit="return confirm('Envoyer un email de rappel à chaque consultant ?')">
+                @csrf
+                @foreach(['search', 'consultant_id', 'client_id', 'fournisseur_id'] as $param)
+                    @if(request()->filled($param))
+                        <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
+                    @endif
+                @endforeach
+                <button type="submit"
+                        class="inline-flex items-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Notifier
+                </button>
+            </form>
             <a href="{{ route('stats.prestations-non-declarees.export', request()->query()) }}"
                class="inline-flex items-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,10 +111,7 @@
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Titre
-                        </th>
+                    <tr>                        
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Consultant
                         </th>
@@ -121,10 +134,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($missions as $mission)
-                        <tr class="hover:bg-gray-50 transition duration-150">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{ $mission->titre ?: 'Mission #' . $mission->id }}</div>
-                            </td>
+                        <tr class="hover:bg-gray-50 transition duration-150">                           
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium text-gray-900">{{ $mission->consultant->nom }}</div>                                
                             </td>

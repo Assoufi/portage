@@ -18,12 +18,10 @@ class Facture extends Model
     protected $fillable = [
         'fournisseur_id',
         'client_id',
+        'mission_id',
         'numero_facture',
         'numero_bcm',
         'date_facture',
-        'designation',
-        'quantite',
-        'prix_unitaire',
         'total_ht',
         'tva',
         'montant',
@@ -38,6 +36,7 @@ class Facture extends Model
         'reference_reglement',
         'beneficiaire',
         'statut',
+        'periode',
     ];
 
     protected $casts = [
@@ -46,11 +45,10 @@ class Facture extends Model
         'date_echeance'       => 'date:Y-m-d',
         'date_reception'      => 'date:Y-m-d',
         'date_reglement'      => 'date:Y-m-d',
+        'periode'             => 'date:Y-m-d',
         'montant'             => 'float',
         'total_ht'            => 'float',
         'tva'                 => 'float',
-        'quantite'            => 'integer',
-        'prix_unitaire'       => 'float',
         'statut'              => 'boolean',
     ];
 
@@ -72,6 +70,11 @@ class Facture extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class, 'client_id');
+    }
+
+    public function mission(): BelongsTo
+    {
+        return $this->belongsTo(Mission::class, 'mission_id');
     }
 
     public function getIsRegleeAttribute(): bool
@@ -154,16 +157,6 @@ class Facture extends Model
         $this->attributes['tva'] = ($value === '' || $value === null) ? 20 : $value;
     }
 
-    public function setPrixUnitaireAttribute($value): void
-    {
-        $this->attributes['prix_unitaire'] = ($value === '' || $value === null) ? null : $value;
-    }
-
-    public function setQuantiteAttribute($value): void
-    {
-        $this->attributes['quantite'] = ($value === '' || $value === null) ? null : (int) $value;
-    }
-
     public static function genererNumeroFacture(): string
     {
         $prefixe = 'FACT-' . date('Y') . '-';
@@ -219,7 +212,6 @@ class Facture extends Model
     public function scopeRecherche($query, $terme)
     {
         return $query->where('numero_facture', 'LIKE', "%{$terme}%")
-            ->orWhere('designation', 'LIKE', "%{$terme}%")
             ->orWhere('beneficiaire', 'LIKE', "%{$terme}%")
             ->orWhereHas('client', fn($q) => $q->where('nom', 'LIKE', "%{$terme}%"))
             ->orWhereHas('fournisseur', fn($q) => $q->where('nom', 'LIKE', "%{$terme}%"));

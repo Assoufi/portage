@@ -8,6 +8,10 @@ use App\Models\Consultant;
 use App\Models\Client;
 use App\Models\Fournisseur;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use App\Mail\DemandeSuiviJours;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StatsController extends Controller
@@ -121,5 +125,47 @@ class StatsController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
             'Cache-Control'       => 'no-cache, no-store, must-revalidate',
         ]);
+    }
+
+    /**
+     * Envoie un email à chaque consultant ayant des prestations non déclarées.
+     */
+    public function notifierPrestationsNonDeclarees(Request $request)
+    {
+        $missions = Mission::with(['consultant', 'client', 'fournisseur'])
+            ->enCours()
+            ->when($request->filled('consultant_id'), fn($q) => $q->where('consultant_id', $request->consultant_id))
+            ->when($request->filled('client_id'), fn($q) => $q->where('client_id', $request->client_id))
+            ->when($request->filled('fournisseur_id'), fn($q) => $q->where('fournisseur_id', $request->fournisseur_id))
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $search = $request->search;
+                $q->where(function ($q2) use ($search) {
+                    $q2->whereHas('consultant', function ($cq) use ($search) {
+                        $cq->where('nom', 'like', "%{$search}%")
+                           ->orWhere('email', 'like', "%{$search}%");
+                    })->orWhereHas('client', function ($clq) use ($search) {
+                        $clq->where('nom', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+                });
+            })
+            ->get();
+
+        // Mois courant en français
+        $mois = Carbon::now()->translatedFormat('F Y');
+
+        // Grouper par consultant (dédupliquer)
+        $consultants = $missions->pluck('consultant')->unique('id');
+
+        foreach ($consultants as $consultant) {
+            Mail::to($consultant->email)
+                ->send(new DemandeSuiviJours($consultant->nom, $mois));
+        }
+
+        $count = $consultants->count();
+
+        return redirect()
+            ->route('stats.prestations-non-declarees', $request->query())
+            ->with('success', "{$count} email(s) envoyé(s) avec succès.");
     }
 }

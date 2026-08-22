@@ -70,7 +70,9 @@
                                 :class="errors.fournisseur_id ? 'border-red-500' : 'border-gray-300'">
                             <option value="">Sélectionner un fournisseur</option>
                             @foreach($fournisseurs as $fournisseur)
-                                <option value="{{ $fournisseur->id }}">{{ $fournisseur->nom }}</option>
+                                <option value="{{ $fournisseur->id }}" {{ !$fournisseur->statut ? 'disabled' : '' }}>
+                                    {{ $fournisseur->nom }}{{ $fournisseur->statut ? '' : ' [Inactif]' }}
+                                </option>
                             @endforeach
                         </select>
                         <p x-show="errors.fournisseur_id" x-text="errors.fournisseur_id" class="text-red-500 text-xs mt-1"></p>
@@ -91,10 +93,10 @@
                     <!-- Taux -->
                     <div>
                         <label for="taux" class="block text-sm font-medium text-gray-700 mb-2">
-                            Taux (jours) *
+                            Taux (jours)
                         </label>
                         <input type="number" name="taux" id="taux" x-model="form.taux" step="0.01"
-                               @input="validateTaux(); calculateMarge()"
+                               @input="calculateMarge(); calculateTJM()"
                                class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
                                :class="errors.taux ? 'border-red-500' : 'border-gray-300'">
                         <p x-show="errors.taux" x-text="errors.taux" class="text-red-500 text-xs mt-1"></p>
@@ -118,7 +120,7 @@
                             Prix de vente *
                         </label>
                         <input type="number" name="prix_vente" id="prix_vente" x-model="form.prix_vente" step="0.01"
-                               @input="validatePrixVente(); calculateMarge()"
+                               @input="validatePrixVente(); calculateMarge(); calculateTJM()"
                                class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
                                :class="errors.prix_vente ? 'border-red-500' : 'border-gray-300'">
                         <div class="mt-1">
@@ -154,7 +156,7 @@
                     <!-- Délai paiement -->
                     <div>
                         <label for="delai_paiement" class="block text-sm font-medium text-gray-700 mb-2">
-                            Délai de paiement (jours) *
+                            Délai de paiement (jours)
                         </label>
                         <input type="number" name="delai_paiement" id="delai_paiement" x-model="form.delai_paiement"
                                @input="validateDelaiPaiement()"
@@ -250,12 +252,21 @@
                     });
                 },
                 
-                // Validation du taux
+                // Calcul du TJM quand il est vide
+                calculateTJM() {
+                    const taux = parseFloat(this.form.taux) || 0;
+                    const prixVente = parseFloat(this.form.prix_vente) || 0;
+                    const tjm = parseFloat(this.form.tjm) || 0;
+                    
+                    if (taux > 0 && prixVente > 0 && !this.form.tjm) {
+                        this.form.tjm = (prixVente * (1 - taux / 100)).toFixed(2);
+                    }
+                },
+                
+                // Validation du taux (optionnel)
                 validateTaux() {
                     const taux = parseFloat(this.form.taux);
-                    if (!this.form.taux) {
-                        this.errors.taux = 'Le taux est obligatoire.';
-                    } else if (isNaN(taux) || taux <= 0) {
+                    if (this.form.taux && (isNaN(taux) || taux < 0)) {
                         this.errors.taux = 'Le taux doit être un nombre positif.';
                     } else if (taux > 1000) {
                         this.errors.taux = 'Le taux ne peut pas dépasser 1000 jours.';
@@ -312,17 +323,10 @@
                                 this.margeInfo.html += `<br><span class="text-yellow-600">⚠ Attention: Marge inférieure à 10%</span>`;
                             }
                         } else {
-                            this.margeInfo.html = `<span class="text-red-600">⚠ Marge négative: ${marge.toFixed(2)} ${this.clientDevise} (${margePourcentage.toFixed(1)}%)</span>`;
+                            this.margeInfo.html = `<span class="text-orange-600">⚠ Marge négative: ${marge.toFixed(2)} ${this.clientDevise} (${margePourcentage.toFixed(1)}%)</span>`;
                         }
                     } else {
                         this.margeInfo.show = false;
-                    }
-                    
-                    // Validation supplémentaire du prix de vente
-                    if (prixVente > 0 && coutTotal > 0 && prixVente <= coutTotal) {
-                        this.errors.prix_vente = `Le prix de vente doit être supérieur au coût total (${coutTotal.toFixed(2)} ${this.clientDevise}).`;
-                    } else if (!this.errors.prix_vente && prixVente > 0) {
-                        delete this.errors.prix_vente;
                     }
                 },
                 
@@ -355,12 +359,10 @@
                     }
                 },
                 
-                // Validation du délai de paiement
+                // Validation du délai de paiement (optionnel)
                 validateDelaiPaiement() {
                     const delai = parseInt(this.form.delai_paiement);
-                    if (!this.form.delai_paiement && this.form.delai_paiement !== 0) {
-                        this.errors.delai_paiement = 'Le délai de paiement est obligatoire.';
-                    } else if (isNaN(delai) || delai < 0) {
+                    if (this.form.delai_paiement !== '' && this.form.delai_paiement !== null && (isNaN(delai) || delai < 0)) {
                         this.errors.delai_paiement = 'Le délai de paiement doit être un nombre positif.';
                     } else if (delai > 365) {
                         this.errors.delai_paiement = 'Le délai de paiement ne peut pas dépasser 365 jours.';
@@ -408,6 +410,7 @@
                     this.validateDates();
                     this.validateDelaiPaiement();
                     this.validateRemarques();
+                    this.calculateTJM();
                     this.calculateMarge();
                 },
                 
@@ -417,7 +420,6 @@
                            this.form.consultant_id &&
                            this.form.client_id &&
                            this.form.fournisseur_id &&
-                           this.form.taux &&
                            this.form.tjm &&
                            this.form.prix_vente &&
                            this.form.date_debut;
