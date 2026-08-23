@@ -56,6 +56,14 @@
                             <p class="text-sm text-gray-500">{{ $facture->client->email }}</p>
                         </div>
 
+                        @if($facture->consultant)
+                        <div>
+                            <p class="text-sm text-gray-600">Consultant</p>
+                            <p class="font-medium">{{ $facture->consultant->nom }}</p>
+                            <p class="text-sm text-gray-500">{{ $facture->consultant->email }}</p>
+                        </div>
+                        @endif
+
                         <div>
                             <p class="text-sm text-gray-600">Date de facture</p>
                             <p class="font-medium">{{ $facture->date_facture_formatee }}</p>
@@ -110,7 +118,7 @@
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantité</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Prix unitaire HT</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total HT</th>
-                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">TVA</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">TVA ({{ $facture->tva }}%)</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant TTC</th>
                                 </tr>
                             </thead>
@@ -123,14 +131,16 @@
                                         <td class="px-4 py-3 text-right text-sm">{{ $detail->quantite }}</td>
                                         <td class="px-4 py-3 text-right text-sm">{{ $detail->prix_unitaire_formate }}</td>
                                         <td class="px-4 py-3 text-right text-sm">{{ $detail->total_ht_formate }}</td>
-                                        <td class="px-4 py-3 text-right text-sm">{{ $detail->tva }} %</td>
+                                        <td class="px-4 py-3 text-right text-sm">{{ $detail->tva_formate }}</td>
                                         <td class="px-4 py-3 text-right text-sm font-medium">{{ $detail->montant_ttc_formate }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
                             <tfoot class="bg-gray-50">
                                 <tr>
-                                    <td colspan="5" class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Total TTC</td>
+                                    <td colspan="3" class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Total HT</td>
+                                    <td class="px-4 py-3 text-right text-sm font-bold text-gray-900">{{ $facture->total_ht_formate }}</td>
+                                    <td class="px-4 py-3 text-right text-sm font-bold text-gray-900">{{ number_format($facture->details->sum('tva'), 2, ',', ' ') }}</td>
                                     <td class="px-4 py-3 text-right text-sm font-bold text-gray-900">{{ $facture->montant_formate }}</td>
                                 </tr>
                             </tfoot>

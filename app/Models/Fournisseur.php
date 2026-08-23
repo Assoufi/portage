@@ -18,7 +18,7 @@ class Fournisseur extends Model
         'adresse',
         'ville',
         'email',
-        'nom_responsable',
+        'responsable',
         'ice',
         'rib',
         'taux',
@@ -76,6 +76,11 @@ class Fournisseur extends Model
     public function setIceAttribute($value)
     {
         $this->attributes['ice'] = strtoupper(trim($value));
+    }
+
+    public function setResponsableAttribute($value)
+    {
+        $this->attributes['responsable'] = $value ? trim($value) : null;
     }
 
     // Validation personnalisée pour ICE

@@ -52,7 +52,7 @@
                         
                         <div>
                             <p class="text-sm text-gray-600">Nom du responsable</p>
-                            <p class="font-medium">{{ $fournisseur->nom_responsable ?: 'Non renseigné' }}</p>
+                            <p class="font-medium">{{ $fournisseur->responsable ?: 'Non renseigné' }}</p>
                         </div>
                         
                         <div>

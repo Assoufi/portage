@@ -11,9 +11,13 @@ return new class extends Migration
     {
         Schema::create('fournisseurs', function (Blueprint $table) {
             $table->id();
-            $table->text('adresse');
+            $table->string('nom', 50);
+            $table->text('adresse')->nullable();
+            $table->string('ville', 50)->nullable();
             $table->string('email', 50)->unique();
+            $table->string('responsable', 50)->nullable();
             $table->string('ice', 15)->unique(); // Exactement 15 caractères
+            $table->string('rib', 30)->nullable(); // IBAN
             $table->decimal('taux', 10, 2)->default(0.00);
             $table->boolean('statut')->default(true);
             $table->timestamps();

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Facture;
 use App\Models\Client;
 use App\Models\Fournisseur;
+use App\Models\Consultant;
 use App\Http\Requests\FactureRequest;
 use App\Services\FactureService;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class FactureController extends Controller
 
     public function index(Request $request)
     {
-        $query = Facture::with(['client', 'fournisseur']);
+        $query = Facture::with(['client', 'fournisseur', 'consultant']);
 
         if ($request->filled('client_id')) {
             $query->parClient($request->client_id);
@@ -25,6 +26,10 @@ class FactureController extends Controller
 
         if ($request->filled('fournisseur_id')) {
             $query->parFournisseur($request->fournisseur_id);
+        }
+
+        if ($request->filled('consultant_id')) {
+            $query->parConsultant($request->consultant_id);
         }
 
         if ($request->filled('statut')) {
@@ -52,9 +57,10 @@ class FactureController extends Controller
         $factures    = $query->paginate(15)->withQueryString();
         $clients     = Client::actif()->orderBy('nom')->get();
         $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
+        $consultants  = Consultant::actif()->orderBy('nom')->get();
         $stats       = $this->factureService->getStats();
 
-        return view('factures.index', compact('factures', 'clients', 'fournisseurs', 'stats'));
+        return view('factures.index', compact('factures', 'clients', 'fournisseurs', 'consultants', 'stats'));
     }
 
     public function create()
@@ -62,9 +68,10 @@ class FactureController extends Controller
         $facture     = new Facture();
         $clients     = Client::actif()->orderBy('nom')->get();
         $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
+        $consultants  = Consultant::actif()->orderBy('nom')->get();
         $numero      = Facture::genererNumeroFacture();
 
-        return view('factures.create', compact('facture', 'clients', 'fournisseurs', 'numero'));
+        return view('factures.create', compact('facture', 'clients', 'fournisseurs', 'consultants', 'numero'));
     }
 
     public function store(FactureRequest $request)
@@ -85,7 +92,7 @@ class FactureController extends Controller
 
     public function show(Facture $facture)
     {
-        $facture->load(['client', 'fournisseur', 'details']);
+        $facture->load(['client', 'fournisseur', 'consultant', 'details']);
 
         return view('factures.show', compact('facture'));
     }
@@ -94,8 +101,9 @@ class FactureController extends Controller
     {
         $clients      = Client::actif()->orderBy('nom')->get();
         $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
+        $consultants  = Consultant::actif()->orderBy('nom')->get();
 
-        return view('factures.edit', compact('facture', 'clients', 'fournisseurs'));
+        return view('factures.edit', compact('facture', 'clients', 'fournisseurs', 'consultants'));
     }
 
     public function update(FactureRequest $request, Facture $facture)

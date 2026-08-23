@@ -11,7 +11,8 @@ return new class extends Migration
     {
         Schema::create('clients', function (Blueprint $table) {
             $table->id();
-            $table->text('adresse');
+            $table->string('nom', 50);
+            $table->text('adresse');            
             $table->string('email', 50)->unique();
             $table->string('ice', 15)->unique(); // Exactement 15 caractères
             $table->decimal('tva', 5, 2)->default(20.00);

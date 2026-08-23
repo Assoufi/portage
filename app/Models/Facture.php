@@ -18,6 +18,7 @@ class Facture extends Model
     protected $fillable = [
         'fournisseur_id',
         'client_id',
+        'consultant_id',
         'mission_id',
         'numero_facture',
         'numero_bcm',
@@ -75,6 +76,24 @@ class Facture extends Model
     public function mission(): BelongsTo
     {
         return $this->belongsTo(Mission::class, 'mission_id');
+    }
+
+    public function consultant(): BelongsTo
+    {
+        return $this->belongsTo(Consultant::class, 'consultant_id');
+    }
+
+    public function calculateTotals(): void
+    {
+        $this->loadMissing('details');
+        $totalHt = $this->details->sum('total_ht');
+        $tvaRate = $this->client?->tva ?? 20;
+        $tva = $totalHt * $tvaRate / 100;
+        $montant = $totalHt + $tva;
+
+        $this->total_ht = $totalHt;
+        $this->tva = $tvaRate;
+        $this->montant = $montant;
     }
 
     public function getIsRegleeAttribute(): bool
@@ -209,11 +228,17 @@ class Facture extends Model
         return $query->where('client_id', $clientId);
     }
 
+    public function scopeParConsultant($query, $consultantId)
+    {
+        return $query->where('consultant_id', $consultantId);
+    }
+
     public function scopeRecherche($query, $terme)
     {
         return $query->where('numero_facture', 'LIKE', "%{$terme}%")
             ->orWhere('beneficiaire', 'LIKE', "%{$terme}%")
             ->orWhereHas('client', fn($q) => $q->where('nom', 'LIKE', "%{$terme}%"))
-            ->orWhereHas('fournisseur', fn($q) => $q->where('nom', 'LIKE', "%{$terme}%"));
+            ->orWhereHas('fournisseur', fn($q) => $q->where('nom', 'LIKE', "%{$terme}%"))
+            ->orWhereHas('consultant', fn($q) => $q->where('nom', 'LIKE', "%{$terme}%"));
     }
 }

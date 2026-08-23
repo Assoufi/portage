@@ -15,10 +15,6 @@ class FactureService
                 $data['numero_facture'] = Facture::genererNumeroFacture();
             }
 
-            if (!isset($data['montant']) && isset($data['total_ht']) && isset($data['tva'])) {
-                $data['montant'] = $data['total_ht'] * (1 + $data['tva'] / 100);
-            }
-
             $facture = Facture::create($data);
 
             if (!empty($data['details'])) {
@@ -28,6 +24,8 @@ class FactureService
                 }
 
                 $facture->load('details');
+                $facture->calculateTotals();
+                $facture->save();
             }
 
             return $facture->fresh();
@@ -37,10 +35,6 @@ class FactureService
     public function updateFacture(Facture $facture, array $data): Facture
     {
         return DB::transaction(function () use ($facture, $data) {
-            if (!isset($data['montant']) && isset($data['total_ht']) && isset($data['tva'])) {
-                $data['montant'] = $data['total_ht'] * (1 + $data['tva'] / 100);
-            }
-
             $facture->update($data);
 
             if (isset($data['details'])) {
@@ -52,6 +46,8 @@ class FactureService
                 }
 
                 $facture->load('details');
+                $facture->calculateTotals();
+                $facture->save();
             }
 
             return $facture->fresh();

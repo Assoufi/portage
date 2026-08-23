@@ -27,6 +27,11 @@ class FactureRequest extends FormRequest
                 'exists:clients,id',
                 Rule::exists('clients', 'id')->where('statut', true),
             ],
+            'consultant_id' => [
+                'nullable',
+                'exists:consultants,id',
+                Rule::exists('consultants', 'id')->where('statut', true),
+            ],
             'numero_facture' => [
                 'required',
                 'string',
@@ -127,6 +132,26 @@ class FactureRequest extends FormRequest
             'statut' => [
                 'boolean',
             ],
+            'details' => [
+                'nullable',
+                'array',
+            ],
+            'details.*.designation' => [
+                'required',
+                'string',
+                'max:1000',
+            ],
+            'details.*.quantite' => [
+                'required',
+                'integer',
+                'min:1',
+            ],
+            'details.*.prix_unitaire' => [
+                'required',
+                'numeric',
+                'min:0',
+                'regex:/^\d+(\.\d{1,2})?$/',
+            ],
         ];
     }
 
@@ -148,6 +173,11 @@ class FactureRequest extends FormRequest
             'montant.max'               => 'Le montant ne peut pas dépasser 99 999 999.99.',
             'date_echeance.after_or_equal' => 'La date d\'échéance doit être postérieure ou égale à la date de facture.',
             'remarques.max'             => 'Les remarques ne doivent pas dépasser 5000 caractères.',
+            'details.*.designation.required' => 'La désignation de chaque ligne est obligatoire.',
+            'details.*.quantite.required'    => 'La quantité de chaque ligne est obligatoire.',
+            'details.*.quantite.min'         => 'La quantité doit être supérieure à 0.',
+            'details.*.prix_unitaire.required' => 'Le prix unitaire de chaque ligne est obligatoire.',
+            'details.*.prix_unitaire.min'      => 'Le prix unitaire doit être positif.',
         ];
     }
 

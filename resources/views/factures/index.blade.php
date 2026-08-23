@@ -62,6 +62,18 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Consultant</label>
+                    <select name="consultant_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                        <option value="">Tous</option>
+                        @foreach($consultants as $consultant)
+                            <option value="{{ $consultant->id }}" {{ request('consultant_id') == $consultant->id ? 'selected' : '' }}>
+                                {{ $consultant->nom }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Statut</label>
                     <select name="statut" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                         <option value="">Tous</option>
@@ -88,7 +100,7 @@
                     <button type="submit" class="flex-1 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Filtrer
                     </button>
-                    @if(request()->anyFilled(['client_id', 'fournisseur_id', 'statut', 'date_debut', 'date_fin', 'recherche']))
+                    @if(request()->anyFilled(['client_id', 'fournisseur_id', 'consultant_id', 'statut', 'date_debut', 'date_fin', 'recherche']))
                         <a href="{{ route('factures.index') }}" class="flex-1 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-center transition duration-300">
                             Réinitialiser
                         </a>
@@ -106,6 +118,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Facture</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fournisseur</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consultant</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Échéance</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
@@ -120,10 +133,13 @@
                                 <span class="text-sm font-mono font-medium text-gray-900">{{ $facture->numero_facture }}</span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{ $facture->fournisseur->nom }}</div>
+                                <div class="text-sm font-medium text-gray-900">{{ $facture->fournisseur->nom ?? '—' }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">{{ $facture->client->nom }}</div>
+                                <div class="text-sm text-gray-900">{{ $facture->client->nom ?? '—' }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ $facture->consultant->nom ?? '—' }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ $facture->date_facture_formatee }}
@@ -171,7 +187,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                            <td colspan="9" class="px-6 py-4 text-center text-gray-500">
                                 Aucune facture trouvée.
                                 <a href="{{ route('factures.create') }}" class="text-blue-600 hover:text-blue-900 ml-2">Créer une facture</a>
                             </td>

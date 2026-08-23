@@ -59,7 +59,7 @@ class FournisseurRequest extends FormRequest
                 'string',
                 'max:255'
             ],
-            'nom_responsable' => [
+            'responsable' => [
                 'nullable',
                 'string',
                 'max:255'
@@ -97,7 +97,7 @@ class FournisseurRequest extends FormRequest
             'taux.max' => 'Le taux doit être inférieur ou égal à 100.',
             
             'ville.max' => 'La ville ne doit pas dépasser 255 caractères.',
-            'nom_responsable.max' => 'Le nom du responsable ne doit pas dépasser 255 caractères.',
+            'responsable.max' => 'Le nom du responsable ne doit pas dépasser 255 caractères.',
             'rib.max' => 'Le RIB ne doit pas dépasser 255 caractères.',
             
             'statut.boolean' => 'Le statut doit être vrai ou faux.'
@@ -110,7 +110,7 @@ class FournisseurRequest extends FormRequest
             'email' => strtolower(trim($this->email)),
             'ice' => strtoupper(preg_replace('/\s+/', '', $this->ice)),
             'ville' => trim($this->ville),
-            'nom_responsable' => trim($this->nom_responsable),
+            'responsable' => trim($this->responsable),
             'rib' => trim($this->rib),
             'taux' => floatval($this->taux)
         ]);

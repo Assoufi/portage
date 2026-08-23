@@ -97,15 +97,15 @@
                     
                     <!-- Nom du responsable -->
                     <div>
-                        <label for="nom_responsable" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="responsable" class="block text-sm font-medium text-gray-700 mb-2">
                             Nom du responsable
                         </label>
-                        <input type="text" name="nom_responsable" id="nom_responsable" x-model="form.nom_responsable"
-                               @input="validateNomResponsable()"
+                        <input type="text" name="responsable" id="responsable" x-model="form.responsable"
+                               @input="validateResponsable()"
                                class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
-                               :class="errors.nom_responsable ? 'border-red-500' : 'border-gray-300'"
+                               :class="errors.responsable ? 'border-red-500' : 'border-gray-300'"
                                placeholder="Nom du responsable">
-                        <p x-show="errors.nom_responsable" x-text="errors.nom_responsable" class="text-red-500 text-xs mt-1"></p>
+                        <p x-show="errors.responsable" x-text="errors.responsable" class="text-red-500 text-xs mt-1"></p>
                     </div>
                     
                     <!-- RIB -->
@@ -167,7 +167,7 @@
                     ice: '{{ old('ice', $fournisseur->ice) }}',
                     taux: '{{ old('taux', $fournisseur->taux) }}',
                     ville: '{{ old('ville', $fournisseur->ville) }}',
-                    nom_responsable: '{{ old('nom_responsable', $fournisseur->nom_responsable) }}',
+                    responsable: '{{ old('responsable', $fournisseur->responsable) }}',
                     rib: '{{ old('rib', $fournisseur->rib) }}',
                     statut: '{{ old('statut', $fournisseur->statut ? '1' : '0') }}'
                 },
@@ -256,11 +256,11 @@
                     }
                 },
                 
-                validateNomResponsable() {
-                    if (this.form.nom_responsable && this.form.nom_responsable.length > 255) {
-                        this.errors.nom_responsable = 'Le nom du responsable ne doit pas dépasser 255 caractères.';
+                validateResponsable() {
+                    if (this.form.responsable && this.form.responsable.length > 255) {
+                        this.errors.responsable = 'Le nom du responsable ne doit pas dépasser 255 caractères.';
                     } else {
-                        delete this.errors.nom_responsable;
+                        delete this.errors.responsable;
                     }
                 },
                 
@@ -279,7 +279,7 @@
                     this.validateIce();
                     this.validateTaux();
                     this.validateVille();
-                    this.validateNomResponsable();
+                    this.validateResponsable();
                     this.validateRib();
                 },
                 

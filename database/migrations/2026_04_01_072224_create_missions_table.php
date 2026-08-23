@@ -28,7 +28,9 @@ return new class extends Migration
                   ->onDelete('restrict')
                   ->onUpdate('cascade');
             
-            // Champs métier
+            // Champs métier 
+            $table->string('titre', 50)->nullable();
+            $table->string('formule', 50)->nullable();
             $table->decimal('taux', 5, 2)->nullable();
             $table->decimal('tjm', 10, 2)->default(0); // Taux Journalier Moyen
             $table->decimal('prix_vente', 10, 2)->default(0);
