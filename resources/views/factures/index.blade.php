@@ -115,40 +115,50 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Facture</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fournisseur</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consultant</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Échéance</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Facture
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Client
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Dates
+                        </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Montant
+                        </th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Statut
+                        </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($factures as $facture)
                         <tr class="hover:bg-gray-50 transition duration-150">
+                            {{-- N° + Fournisseur regroupés --}}
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-sm font-mono font-medium text-gray-900">{{ $facture->numero_facture }}</span>
+                                <div class="text-sm font-mono font-medium text-gray-900">{{ $facture->numero_facture }}</div>
+                                <div class="text-sm text-gray-500">{{ $facture->fournisseur->nom ?? '—' }}</div>
                             </td>
+                            {{-- Client + Consultant regroupés --}}
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{ $facture->fournisseur->nom ?? '—' }}</div>
+                                <div class="text-sm font-medium text-gray-900">{{ $facture->client->nom ?? '—' }}</div>
+                                <div class="text-sm text-gray-500">{{ $facture->consultant->nom ?? '—' }}</div>
                             </td>
+                            {{-- Date facture → Échéance --}}
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">{{ $facture->client->nom ?? '—' }}</div>
+                                <div class="text-sm text-gray-900">
+                                    {{ $facture->date_facture_formatee }}
+                                    → {{ $facture->date_echeance_formatee }}
+                                </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">{{ $facture->consultant->nom ?? '—' }}</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $facture->date_facture_formatee }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $facture->date_echeance_formatee }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                                {{ $facture->montant_formate }}
+                            {{-- Montant TTC + HT regroupés --}}
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <div class="text-sm font-medium text-gray-900">{{ $facture->montant_formate }}</div>
+                                <div class="text-sm text-gray-500">HT: {{ $facture->total_ht_formate }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 {!! $facture->statut_badge !!}
@@ -163,11 +173,18 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
                                     </a>
-                                    <a href="{{ route('factures.edit', $facture) }}"
-                                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-50 text-yellow-600 hover:bg-yellow-100 hover:text-yellow-800 transition duration-150"
-                                       title="Modifier">
+<a href="{{ route('factures.edit', $facture) }}"
+                                           class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-50 text-yellow-600 hover:bg-yellow-100 hover:text-yellow-800 transition duration-150"
+                                           title="Modifier">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </a>
+                                    <a href="{{ route('factures.cloner', $facture) }}"
+                                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-800 transition duration-150"
+                                       title="Cloner">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 01-2-2m4 4v6a2 2 0 01-2 2m4-4V4a2 2 0 01-2-2m4 4-6 6m6-6-6 6" />
                                         </svg>
                                     </a>
                                     <form action="{{ route('factures.destroy', $facture) }}" method="POST" class="inline-block">
@@ -187,7 +204,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-4 text-center text-gray-500">
+                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                                 Aucune facture trouvée.
                                 <a href="{{ route('factures.create') }}" class="text-blue-600 hover:text-blue-900 ml-2">Créer une facture</a>
                             </td>

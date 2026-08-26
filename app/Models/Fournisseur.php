@@ -70,7 +70,7 @@ class Fournisseur extends Model
 
     public function setEmailAttribute($value)
     {
-        $this->attributes['email'] = strtolower(trim($value));
+        $this->attributes['email'] = $value ? strtolower(trim($value)) : null;
     }
 
     public function setIceAttribute($value)

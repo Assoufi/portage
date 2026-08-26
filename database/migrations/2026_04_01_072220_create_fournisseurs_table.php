@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('nom', 50);
             $table->text('adresse')->nullable();
             $table->string('ville', 50)->nullable();
-            $table->string('email', 50)->unique();
+            $table->string('email', 50)->nullable();
             $table->string('responsable', 50)->nullable();
             $table->string('ice', 15)->unique(); // Exactement 15 caractères
             $table->string('rib', 30)->nullable(); // IBAN
@@ -24,7 +24,6 @@ return new class extends Migration
             $table->softDeletes();
             
             $table->index('ice');
-            $table->index('email');
         });
     }
 

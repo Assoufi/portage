@@ -22,7 +22,7 @@
                                 required>
                             <option value="">Sélectionner un fournisseur</option>
                             @foreach($fournisseurs as $fournisseur)
-                                <option value="{{ $fournisseur->id }}" {{ old('fournisseur_id') == $fournisseur->id ? 'selected' : '' }}>
+                                <option value="{{ $fournisseur->id }}" {{ old('fournisseur_id', $clone['fournisseur_id'] ?? '') == $fournisseur->id ? 'selected' : '' }}>
                                     {{ $fournisseur->nom }}
                                 </option>
                             @endforeach
@@ -39,7 +39,7 @@
                                 required>
                             <option value="">Sélectionner un client</option>
                             @foreach($clients as $client)
-                                <option value="{{ $client->id }}" {{ old('client_id') == $client->id ? 'selected' : '' }} data-tva="{{ $client->tva }}">
+                                <option value="{{ $client->id }}" {{ old('client_id', $clone['client_id'] ?? '') == $client->id ? 'selected' : '' }} data-tva="{{ $client->tva }}">
                                     {{ $client->nom }}
                                 </option>
                             @endforeach
@@ -55,7 +55,7 @@
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('consultant_id') border-red-500 @enderror">
                             <option value="">Sélectionner un consultant</option>
                             @foreach($consultants as $consultant)
-                                <option value="{{ $consultant->id }}" {{ old('consultant_id') == $consultant->id ? 'selected' : '' }}>
+                                <option value="{{ $consultant->id }}" {{ old('consultant_id', $clone['consultant_id'] ?? '') == $consultant->id ? 'selected' : '' }}>
                                     {{ $consultant->nom }}
                                 </option>
                             @endforeach
@@ -79,7 +79,7 @@
                     <div>
                         <label for="numero_bcm" class="block text-sm font-medium text-gray-700 mb-2">Numéro BCM</label>
                         <input type="text" name="numero_bcm" id="numero_bcm"
-                               value="{{ old('numero_bcm') }}"
+                               value="{{ old('numero_bcm', $clone['numero_bcm'] ?? '') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('numero_bcm') border-red-500 @enderror">
                         @error('numero_bcm')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -89,7 +89,7 @@
                     <div>
                         <label for="date_facture" class="block text-sm font-medium text-gray-700 mb-2">Date de facture *</label>
                         <input type="date" name="date_facture" id="date_facture"
-                               value="{{ old('date_facture', date('Y-m-d')) }}"
+                               value="{{ old('date_facture', $clone['date_facture'] ?? date('Y-m-d')) }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('date_facture') border-red-500 @enderror"
                                required>
                         @error('date_facture')
@@ -100,7 +100,7 @@
                     <div>
                         <label for="date_echeance" class="block text-sm font-medium text-gray-700 mb-2">Date d'échéance</label>
                         <input type="date" name="date_echeance" id="date_echeance"
-                               value="{{ old('date_echeance') }}"
+                               value="{{ old('date_echeance', $clone['date_echeance'] ?? '') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('date_echeance') border-red-500 @enderror">
                         @error('date_echeance')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -110,7 +110,7 @@
                     <div>
                         <label for="date_reception" class="block text-sm font-medium text-gray-700 mb-2">Date de réception</label>
                         <input type="date" name="date_reception" id="date_reception"
-                               value="{{ old('date_reception') }}"
+                               value="{{ old('date_reception', $clone['date_reception'] ?? '') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('date_reception') border-red-500 @enderror">
                         @error('date_reception')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -120,7 +120,7 @@
                     <div class="md:col-span-2">
                         <label for="beneficiaire" class="block text-sm font-medium text-gray-700 mb-2">Bénéficiaire</label>
                         <input type="text" name="beneficiaire" id="beneficiaire"
-                               value="{{ old('beneficiaire') }}"
+                               value="{{ old('beneficiaire', $clone['beneficiaire'] ?? '') }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('beneficiaire') border-red-500 @enderror">
                         @error('beneficiaire')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
@@ -130,7 +130,7 @@
                     <div class="md:col-span-2">
                         <label for="remarques" class="block text-sm font-medium text-gray-700 mb-2">Remarques</label>
                         <textarea name="remarques" id="remarques" rows="4"
-                                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('remarques') border-red-500 @enderror">{{ old('remarques') }}</textarea>
+                                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('remarques') border-red-500 @enderror">{{ old('remarques', $clone['remarques'] ?? '') }}</textarea>
                         @error('remarques')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
@@ -177,7 +177,7 @@
                             + Ajouter une ligne
                         </button>
                     </div>
-                    <input type="hidden" name="tva" id="tvaInput" value="20.00">
+                    <input type="hidden" name="tva" id="tvaInput" value="{{ old('tva', $clone['tva'] ?? '20.00') }}">
                 </div>
 
                 <div class="mt-6 flex justify-end space-x-3">
@@ -230,7 +230,10 @@
                 tvaDisplay.textContent = formatNumber(tva);
                 montantDisplay.textContent = formatNumber(montant);
 
-                document.getElementById('montant').value = montant.toFixed(2);
+                const montantInput = document.getElementById('montant');
+                if (montantInput) {
+                    montantInput.value = montant.toFixed(2);
+                }
             }
 
             function addDetailRow(data = {}) {
@@ -238,12 +241,11 @@
                 tr.className = 'hover:bg-gray-50';
                 tr.innerHTML = `
                     <td class="px-4 py-3">
-                        <input type="text"
-                               name="details[${detailIndex}][designation]"
+<textarea name="details[${detailIndex}][designation]"
                                value="${data.designation || ''}"
-                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
-                               required>
-                        @error('details.${detailIndex}.designation')
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 resize-none"
+                               required>${data.designation || ''}</textarea>
+                         @error('details.${detailIndex}.designation')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </td>
@@ -253,9 +255,9 @@
                                value="${data.quantite || 1}"
                                min="1"
                                step="1"
-                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 text-right"
+class="w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 text-right"
                                required>
-                        @error('details.${detailIndex}.quantite')
+                         @error('details.${detailIndex}.quantite')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </td>
@@ -265,9 +267,9 @@
                                value="${data.prix_unitaire || ''}"
                                min="0"
                                step="0.01"
-                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 text-right"
+class="w-28 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 text-right"
                                required>
-                        @error('details.${detailIndex}.prix_unitaire')
+                         @error('details.${detailIndex}.prix_unitaire')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </td>
@@ -311,7 +313,32 @@
                 }
             });
 
-            if (clientSelect.value) {
+            const fournisseurSelect = document.getElementById('fournisseur_id');
+            const numeroInput = document.getElementById('numero_facture');
+
+            // Récupère le prochain numéro yyyy-ddd du fournisseur sélectionné
+            // et pré-remplit le champ (toujours modifiable ensuite par l'utilisateur).
+            function fetchNumeroSuivant(fournisseurId) {
+                const url = '{{ route('factures.numero-suivant') }}'
+                    + (fournisseurId ? '?fournisseur_id=' + encodeURIComponent(fournisseurId) : '');
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.numero) {
+                            numeroInput.value = data.numero;
+                        }
+                    })
+                    .catch(() => {});
+            }
+
+            fournisseurSelect.addEventListener('change', function() {
+                fetchNumeroSuivant(this.value);
+            });
+
+            const cloneDetails = @json($cloneDetails ?? []);
+
+            if (clientSelect.value && cloneDetails.length === 0) {
                 const selectedOption = clientSelect.options[clientSelect.selectedIndex];
                 const tva = selectedOption.getAttribute('data-tva');
                 if (tva) {
@@ -320,7 +347,15 @@
                 }
             }
 
-            addDetailRow();
+            if (cloneDetails.length > 0) {
+                cloneDetails.forEach(function(detail) {
+                    addDetailRow(detail);
+                });
+            } else {
+                addDetailRow();
+            }
+
+            recalculateTotals();
         });
     </script>
 @endsection

@@ -33,7 +33,6 @@ class ClientRequest extends FormRequest
                 'nullable',
                 'email',
                 'max:255',
-                'unique:clients,email,' . $clientId,
                 'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'
             ],
             'ice' => [
@@ -77,7 +76,6 @@ class ClientRequest extends FormRequest
             'adresse.max' => 'L\'adresse ne doit pas dépasser 1000 caractères.',
             
             'email.email' => 'Veuillez saisir une adresse email valide.',
-            'email.unique' => 'Cette adresse email est déjà utilisée.',
             
             'ice.required' => 'L\'ICE est obligatoire.',
             'ice.size' => 'L\'ICE doit contenir exactement 15 caractères.',
@@ -101,7 +99,7 @@ class ClientRequest extends FormRequest
     {
         $this->merge([
             'nom' => ucwords(strtolower(trim($this->nom))),  
-            'email' => strtolower(trim($this->email)),
+            'email' => $this->email ? strtolower(trim($this->email)) : null,
             'ice' => strtoupper(preg_replace('/\s+/', '', $this->ice)),
             'tva' => floatval($this->tva)
         ]);

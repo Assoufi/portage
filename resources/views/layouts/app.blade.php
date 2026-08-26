@@ -17,9 +17,46 @@
     
     @stack('styles')
 </head>
-<body class="font-sans antialiased">
-    <div x-data="{ sidebarOpen: false }" class="min-h-screen bg-gray-100">
-        @include('layouts.navigation')
+<body class="font-sans antialiased min-h-screen bg-gray-100">
+    <script>
+        // Au chargement de la page, restaurer l'état du menu mobile depuis localStorage
+        document.addEventListener('alpine:init', () => {
+            // Attendre un petit délai pour que Alpine soit complètement initialisé
+            setTimeout(() => {
+                const storedState = localStorage.getItem('navOpenState');
+                if (storedState) {
+                    // Sélectionner le composant navigation par son attribut x-data
+                    const navElements = document.querySelectorAll('nav[x-data]');
+                    navElements.forEach(navElement => {
+                        if (navElement.__x) {
+                            navElement.__x.data.open = storedState === 'true';
+                        }
+                    });
+                }
+            }, 100);
+        });
+        
+        // Sauvegarder l'état du menu au clic sur le hamburger
+        document.addEventListener('click', (e) => {
+            const target = e.target;
+            // Chercher un bouton qui toggle l'état open dans un ancêtre nav
+            let button = target;
+            while (button && button.tagName !== 'NAV') {
+                if (button.tagName === 'BUTTON' && button.getAttribute('onclick') && button.getAttribute('onclick').includes('open')) {
+                    break;
+                }
+                button = button.parentElement;
+            }
+            if (button && button.tagName === 'BUTTON' && button.getAttribute('onclick') && button.getAttribute('onclick').includes('open')) {
+                const nav = button.closest('nav');
+                if (nav && nav.__x) {
+                    localStorage.setItem('navOpenState', nav.__x.data.open.toString());
+                }
+            }
+        });
+    </script>
+    
+    @include('layouts.navigation')
         
         <!-- Composant de notification global -->
         <div x-data="notify()" x-init="window.notify = this"></div>

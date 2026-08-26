@@ -6,23 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('fournisseurs', function (Blueprint $table) {
-            $table->string('nom')->after('id')->unique();
+            $table->dropUnique('fournisseurs_email_unique');
+            $table->string('email', 50)->nullable()->change();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('fournisseurs', function (Blueprint $table) {
-            $table->dropColumn('nom');
+            $table->string('email', 50)->unique()->change();
         });
     }
 };

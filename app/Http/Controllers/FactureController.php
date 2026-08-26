@@ -63,15 +63,60 @@ class FactureController extends Controller
         return view('factures.index', compact('factures', 'clients', 'fournisseurs', 'consultants', 'stats'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $facture     = new Facture();
         $clients     = Client::actif()->orderBy('nom')->get();
         $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
         $consultants  = Consultant::actif()->orderBy('nom')->get();
-        $numero      = Facture::genererNumeroFacture();
 
-        return view('factures.create', compact('facture', 'clients', 'fournisseurs', 'consultants', 'numero'));
+        $clone = null;
+        $cloneDetails = collect();
+
+        if ($request->filled('clone')) {
+            $source = Facture::with('details')->find($request->input('clone'));
+
+            if ($source) {
+                $clone = [
+                    'fournisseur_id' => $source->fournisseur_id,
+                    'client_id'      => $source->client_id,
+                    'consultant_id'  => $source->consultant_id,
+                    'numero_bcm'     => $source->numero_bcm,
+                    'date_facture'   => $source->date_facture?->format('Y-m-d'),
+                    'date_echeance'  => $source->date_echeance?->format('Y-m-d'),
+                    'date_reception' => $source->date_reception?->format('Y-m-d'),
+                    'beneficiaire'   => $source->beneficiaire,
+                    'remarques'      => $source->remarques,
+                    'tva'            => $source->tva,
+                ];
+
+                $cloneDetails = $source->details->map(fn ($d) => [
+                    'designation'   => $d->designation,
+                    'quantite'      => $d->quantite,
+                    'prix_unitaire' => $d->prix_unitaire,
+                ])->values();
+            }
+        }
+
+        // Numéro pré-rempli au format yyyy-ddd : calculé à partir du maximum
+        // du fournisseur sélectionné (ou cloné), reste modifiable par l'utilisateur.
+        $fournisseurId = (int) ($request->input('fournisseur_id') ?? $clone['fournisseur_id'] ?? 0);
+        $numero = Facture::genererNumeroFacturePourFournisseur($fournisseurId ?: null);
+
+        return view('factures.create', compact('facture', 'clients', 'fournisseurs', 'consultants', 'numero', 'clone', 'cloneDetails'));
+    }
+
+    /**
+     * Endpoint AJAX : renvoie le prochain numéro yyyy-ddd pour un fournisseur donné
+     * (appelé lors de la sélection du fournisseur dans le formulaire de création).
+     */
+    public function numeroSuivant(Request $request)
+    {
+        $fournisseurId = $request->filled('fournisseur_id') ? (int) $request->input('fournisseur_id') : null;
+
+        return response()->json([
+            'numero' => Facture::genererNumeroFacturePourFournisseur($fournisseurId),
+        ]);
     }
 
     public function store(FactureRequest $request)
@@ -103,7 +148,14 @@ class FactureController extends Controller
         $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
         $consultants  = Consultant::actif()->orderBy('nom')->get();
 
-        return view('factures.edit', compact('facture', 'clients', 'fournisseurs', 'consultants'));
+        $detailsJson = $facture->details->map(fn($d) => [
+            'designation'  => $d->designation,
+            'quantite'     => $d->quantite,
+            'prix_unitaire' => $d->prix_unitaire,
+            'total_ht'     => $d->total_ht,
+        ])->values()->toJson();
+
+        return view('factures.edit', compact('facture', 'clients', 'fournisseurs', 'consultants', 'detailsJson'));
     }
 
     public function update(FactureRequest $request, Facture $facture)
@@ -156,5 +208,36 @@ class FactureController extends Controller
                 ->back()
                 ->with('error', 'Erreur lors du règlement de la facture : ' . $e->getMessage());
         }
+    }
+
+    public function cloner(Facture $facture)
+    {
+        return redirect()->route('factures.create', ['clone' => $facture->id]);
+    }
+
+    public function clonerDonnees(Facture $facture)
+    {
+        return response()->json([
+            'success' => true,
+            'facture' => [
+                'fournisseur_id' => $facture->fournisseur_id,
+                'client_id' => $facture->client_id,
+                'consultant_id' => $facture->consultant_id,
+                'numero_bcm' => $facture->numero_bcm,
+                'date_facture' => $facture->date_facture->format('Y-m-d'),
+                'date_echeance' => $facture->date_echeance?->format('Y-m-d'),
+                'date_reception' => $facture->date_reception?->format('Y-m-d'),
+                'beneficiaire' => $facture->beneficiaire,
+                'remarques' => $facture->remarques,
+                'tva' => $facture->tva,
+            ],
+            'details' => $facture->details->map(function ($detail) {
+                return [
+                    'designation' => $detail->designation,
+                    'quantite' => $detail->quantite,
+                    'prix_unitaire' => $detail->prix_unitaire,
+                ];
+            })->toArray(),
+        ]);
     }
 }

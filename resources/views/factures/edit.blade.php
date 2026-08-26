@@ -179,12 +179,17 @@
                         </button>
                     </div>
                     <input type="hidden" name="tva" id="tvaInput" value="{{ $facture->tva }}">
+                    <input type="hidden" name="montant" id="montant" value="{{ $facture->montant }}">
                 </div>
 
                 <div class="mt-6 flex justify-end space-x-3">
                     <a href="{{ route('factures.index') }}"
                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Annuler
+                    </a>
+                    <a href="{{ route('factures.index') }}"
+                       class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Cloner
                     </a>
                     <button type="submit"
                             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
@@ -207,14 +212,7 @@
             const montantDisplay = document.getElementById('montantDisplay');
             let detailIndex = 0;
 
-            const existingDetails = @json($facture->details->map(function($d) {
-                return [
-                    'designation' => $d->designation,
-                    'quantite' => $d->quantite,
-                    'prix_unitaire' => $d->prix_unitaire,
-                    'total_ht' => $d->total_ht,
-                ];
-            }));
+            const existingDetails = {!! $detailsJson !!};
 
             function formatNumber(num) {
                 return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
@@ -243,19 +241,15 @@
                 document.getElementById('montant').value = montant.toFixed(2);
             }
 
-            function addDetailRow(data = {}) {
+function addDetailRow(data = {}) {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50';
                 tr.innerHTML = `
                     <td class="px-4 py-3">
-                        <input type="text"
-                               name="details[${detailIndex}][designation]"
+                        <textarea name="details[${detailIndex}][designation]"
                                value="${data.designation || ''}"
-                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
-                               required>
-                        @error('details.${detailIndex}.designation')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 resize-none"
+                               required>${data.designation || ''}</textarea>
                     </td>
                     <td class="px-4 py-3">
                         <input type="number"
@@ -263,11 +257,8 @@
                                value="${data.quantite || 1}"
                                min="1"
                                step="1"
-                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 text-right"
+class="w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 text-right"
                                required>
-                        @error('details.${detailIndex}.quantite')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
                     </td>
                     <td class="px-4 py-3">
                         <input type="number"
@@ -275,11 +266,8 @@
                                value="${data.prix_unitaire || ''}"
                                min="0"
                                step="0.01"
-                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 text-right"
+class="w-28 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 text-right"
                                required>
-                        @error('details.${detailIndex}.prix_unitaire')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
                     </td>
                     <td class="px-4 py-3 text-right">
                         <input type="hidden" name="details[${detailIndex}][total_ht]" value="${data.total_ht || 0}">

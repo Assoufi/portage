@@ -148,7 +148,9 @@ class Facture extends Model
 
     public function setNumeroFactureAttribute($value): void
     {
-        $this->attributes['numero_facture'] = strtoupper(trim($value));
+        if (! empty($value)) {
+            $this->attributes['numero_facture'] = strtoupper(trim($value));
+        }
     }
 
     public function setBeneficiaireAttribute($value): void
@@ -191,6 +193,40 @@ class Facture extends Model
         }
 
         return $prefixe . str_pad($numero, 5, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Génère le prochain numéro au format "yyyy-ddd" pour un fournisseur donné.
+     * Incrémente le maximum existant (+ soft-deleted, à cause de la contrainte UNIQUE),
+     * ou démarre à "{année courante}-001" si aucune facture n'existe encore.
+     */
+    public static function genererNumeroFacturePourFournisseur(?int $fournisseurId = null): string
+    {
+        // Seuls les numéros déjà au format yyyy-ddd sont pris en compte
+        $query = static::withTrashed()
+            ->where('numero_facture', 'REGEXP', '^[0-9]{4}-[0-9]+$');
+
+        // Le compteur est propre à chaque fournisseur
+        if ($fournisseurId !== null) {
+            $query->where('fournisseur_id', $fournisseurId);
+        }
+
+        // Recherche du maximum (année puis séquence)
+        $maxAnnee    = null;
+        $maxSequence = 0;
+        foreach ($query->pluck('numero_facture') as $numero) {
+            [$annee, $sequence] = array_map('intval', explode('-', $numero));
+
+            if ($maxAnnee === null || $annee > $maxAnnee
+                || ($annee === $maxAnnee && $sequence > $maxSequence)) {
+                $maxAnnee    = $annee;
+                $maxSequence = $sequence;
+            }
+        }
+
+        $annee = $maxAnnee ?? (int) date('Y');
+
+        return $annee . '-' . str_pad((string) ($maxSequence + 1), 3, '0', STR_PAD_LEFT);
     }
 
     public function scopeActif($query)

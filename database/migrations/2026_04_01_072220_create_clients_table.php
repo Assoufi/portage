@@ -13,7 +13,7 @@ return new class extends Migration
             $table->id();
             $table->string('nom', 50);
             $table->text('adresse');            
-            $table->string('email', 50)->unique();
+            $table->string('email', 50)->nullable();
             $table->string('ice', 15)->unique(); // Exactement 15 caractères
             $table->decimal('tva', 5, 2)->default(20.00);
             $table->string('devise', 3)->default('MAD');
@@ -23,7 +23,6 @@ return new class extends Migration
             
             // Index pour optimiser les recherches
             $table->index('ice');
-            $table->index('email');
         });
     }
 

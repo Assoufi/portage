@@ -7,11 +7,16 @@
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             Facture {{ $facture->numero_facture }}
         </h2>
-        <div class="space-x-2">
+<div class="space-x-2">
             <a href="{{ route('factures.edit', $facture) }}"
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Modifier
             </a>
+<a href="{{ route('factures.cloner', $facture) }}"
+   class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300"
+   title="Cloner">
+    Cloner
+</a>
             <a href="{{ route('factures.index') }}"
                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Retour
@@ -287,7 +292,7 @@
                         Confirmer le règlement
                     </button>
                 </div>
-            </form>
-        </div>
+</form>
     </div>
+</div>
 @endsection

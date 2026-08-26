@@ -12,7 +12,8 @@ class FactureService
     {
         return DB::transaction(function () use ($data) {
             if (!isset($data['numero_facture'])) {
-                $data['numero_facture'] = Facture::genererNumeroFacture();
+                // Fallback : génère un numéro yyyy-ddd basé sur le fournisseur
+                $data['numero_facture'] = Facture::genererNumeroFacturePourFournisseur($data['fournisseur_id'] ?? null);
             }
 
             $facture = Facture::create($data);
@@ -72,6 +73,30 @@ class FactureService
             ]);
 
             return $facture->fresh();
+        });
+    }
+
+    public function clonerFacture(Facture $facture): Facture
+    {
+        return DB::transaction(function () use ($facture) {
+            $nouvelleFacture = new Facture();
+            $donnees = $facture->except(['id', 'created_at', 'updated_at', 'numero_facture']);
+
+            $nouvelleFacture->numero_facture = Facture::genererNumeroFacturePourFournisseur($facture->fournisseur_id);
+            $nouvelleFacture->fill($donnees)->save();
+
+            foreach ($facture->details as $detail) {
+                $detailData = $detail->toArray();
+                unset($detailData['id'], $detailData['facture_id'], $detailData['created_at'], $detailData['updated_at']);
+                $detailData['facture_id'] = $nouvelleFacture->id;
+                DetailFacture::create($detailData);
+            }
+
+            $nouvelleFacture->load('details');
+            $nouvelleFacture->calculateTotals();
+            $nouvelleFacture->save();
+
+            return $nouvelleFacture->fresh();
         });
     }
 

@@ -32,7 +32,6 @@ class FournisseurRequest extends FormRequest
                 'nullable',
                 'email',
                 'max:255',
-                'unique:fournisseurs,email,' . $fournisseurId,
                 'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'
             ],
             'ice' => [
@@ -86,7 +85,6 @@ class FournisseurRequest extends FormRequest
             'adresse.max' => 'L\'adresse ne doit pas dépasser 1000 caractères.',
             
             'email.email' => 'Veuillez saisir une adresse email valide.',
-            'email.unique' => 'Cette adresse email est déjà utilisée.',
             
             'ice.size' => 'L\'ICE doit contenir exactement 15 caractères.',
             'ice.unique' => 'Cet ICE est déjà utilisé.',
@@ -107,7 +105,7 @@ class FournisseurRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'email' => strtolower(trim($this->email)),
+            'email' => $this->email ? strtolower(trim($this->email)) : null,
             'ice' => strtoupper(preg_replace('/\s+/', '', $this->ice)),
             'ville' => trim($this->ville),
             'responsable' => trim($this->responsable),

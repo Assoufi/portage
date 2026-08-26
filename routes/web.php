@@ -56,8 +56,14 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('repartitions', RepartitionController::class);
     
     // Routes pour les Factures
+    Route::get('factures/numero-suivant', [FactureController::class, 'numeroSuivant'])
+        ->name('factures.numero-suivant');
     Route::post('factures/{facture}/marquer-reglee', [FactureController::class, 'marquerReglee'])
         ->name('factures.marquer-reglee');
+    Route::get('factures/{facture}/cloner', [FactureController::class, 'cloner'])
+        ->name('factures.cloner');
+    Route::get('factures/{facture}/cloner-donnees', [FactureController::class, 'clonerDonnees'])
+        ->name('factures.cloner-donnees');
     Route::resource('factures', FactureController::class);
     
     // Routes Stats

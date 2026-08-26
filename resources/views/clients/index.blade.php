@@ -93,7 +93,7 @@
                                 <div class="text-xs text-gray-500">ID: #{{ $client->id }}</div>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-sm text-gray-900">{{ $client->email }}</div>
+                                <div class="text-sm text-gray-900">{{ $client->email ?? 'Non renseigné' }}</div>
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <span class="text-sm">{{ $client->tva_formatted }}</span>
