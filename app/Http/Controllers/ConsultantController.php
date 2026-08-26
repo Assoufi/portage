@@ -95,6 +95,11 @@ class ConsultantController extends Controller
             'missions_encours' => $consultant->missions()->whereNull('date_fin')->count(),
             'missions_terminees' => $consultant->missions()->whereNotNull('date_fin')->count(),
             'ca_total' => $consultant->missions()->sum('prix_vente'),
+            'factures_total' => $consultant->factures()->count(),
+            'factures_reglees' => $consultant->factures()->whereNotNull('date_reglement')->count(),
+            'factures_impayees' => $consultant->factures()->whereNull('date_reglement')->count(),
+            'factures_montant_total' => $consultant->factures()->sum('montant'),
+            'factures_montant_regle' => $consultant->factures()->whereNotNull('date_reglement')->sum('montant'),
         ];
         
         return view('consultants.show', compact('consultant', 'stats'));

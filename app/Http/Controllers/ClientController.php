@@ -81,9 +81,36 @@ class ClientController extends Controller
             'missions_encours' => $client->missions()->whereNull('date_fin')->count(),
             'missions_terminees' => $client->missions()->whereNotNull('date_fin')->count(),
             'ca_total' => $client->missions()->sum('prix_vente'),
+            'factures_total' => $client->factures()->count(),
+            'factures_reglees' => $client->factures()->whereNotNull('date_reglement')->count(),
+            'factures_impayees' => $client->factures()->whereNull('date_reglement')->count(),
+            'factures_montant_total' => $client->factures()->sum('montant'),
+            'factures_montant_regle' => $client->factures()->whereNotNull('date_reglement')->sum('montant'),
         ];
-        
-        return view('clients.show', compact('client', 'stats'));
+
+        $missionsParAnnee = $client->missions()
+            ->selectRaw('YEAR(date_debut) as annee, COUNT(*) as nb_missions, SUM(prix_vente) as ca')
+            ->groupByRaw('YEAR(date_debut)')
+            ->orderBy('annee')
+            ->get();
+
+        $facturesParAnnee = $client->factures()
+            ->selectRaw('YEAR(date_facture) as annee, COUNT(*) as nb_factures, SUM(montant) as montant_total')
+            ->groupByRaw('YEAR(date_facture)')
+            ->orderBy('annee')
+            ->get();
+
+        $annees = $missionsParAnnee->pluck('annee')->merge($facturesParAnnee->pluck('annee'))->unique()->sort()->values();
+
+        $evolution = $annees->map(fn($annee) => [
+            'annee' => $annee,
+            'nb_missions' => $missionsParAnnee->where('annee', $annee)->first()->nb_missions ?? 0,
+            'ca' => $missionsParAnnee->where('annee', $annee)->first()->ca ?? 0,
+            'nb_factures' => $facturesParAnnee->where('annee', $annee)->first()->nb_factures ?? 0,
+            'montant_factures' => $facturesParAnnee->where('annee', $annee)->first()->montant_total ?? 0,
+        ]);
+
+        return view('clients.show', compact('client', 'stats', 'evolution'));
     }
 
     public function edit(Client $client)

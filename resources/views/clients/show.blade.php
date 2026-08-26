@@ -105,6 +105,31 @@
                             <span class="text-gray-600">CA total</span>
                             <span class="font-bold text-purple-600">{{ number_format($stats['ca_total'], 2) }} {{ $client->devise }}</span>
                         </div>
+
+                        <div class="flex justify-between items-center pt-4 border-t">
+                            <span class="text-gray-600 font-semibold">Factures</span>
+                            <span class="font-bold text-xl text-orange-600">{{ $stats['factures_total'] }}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Factures réglées</span>
+                            <span class="font-bold text-green-600">{{ $stats['factures_reglees'] }}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Factures impayées</span>
+                            <span class="font-bold text-red-600">{{ $stats['factures_impayees'] }}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t">
+                            <span class="text-gray-600">Montant total factures</span>
+                            <span class="font-bold text-orange-600">{{ number_format($stats['factures_montant_total'], 2) }} {{ $client->devise }}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Montant réglé</span>
+                            <span class="font-bold text-green-600">{{ number_format($stats['factures_montant_regle'], 2) }} {{ $client->devise }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -145,6 +170,63 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">{{ number_format($mission->prix_vente, 2) }} {{ $client->devise }}</td>
                                 <td class="px-6 py-4">{!! $mission->statut_badge !!}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Évolution annuelle -->
+    @if($evolution->count() > 0)
+    <div class="mt-6 bg-white overflow-hidden shadow-sm sm:rounded-lg">
+        <div class="p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Évolution annuelle</h3>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Année</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Missions</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">CA (missions)</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Factures</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant factures</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @php
+                            $maxCa = $evolution->max('ca');
+                            $maxMontant = $evolution->max('montant_factures');
+                            $maxVal = max($maxCa, $maxMontant, 1);
+                        @endphp
+                        @foreach($evolution as $row)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 font-bold text-gray-900">{{ $row['annee'] }}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-800 text-sm font-bold">{{ $row['nb_missions'] }}</span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <div class="w-32 bg-gray-200 rounded-full h-2.5">
+                                            <div class="bg-purple-500 h-2.5 rounded-full" style="width: {{ $maxCa > 0 ? ($row['ca'] / $maxCa * 100) : 0 }}%"></div>
+                                        </div>
+                                        <span class="font-semibold text-purple-600 text-sm whitespace-nowrap">{{ number_format($row['ca'], 0) }} {{ $client->devise }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-800 text-sm font-bold">{{ $row['nb_factures'] }}</span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <div class="w-32 bg-gray-200 rounded-full h-2.5">
+                                            <div class="bg-orange-500 h-2.5 rounded-full" style="width: {{ $maxMontant > 0 ? ($row['montant_factures'] / $maxMontant * 100) : 0 }}%"></div>
+                                        </div>
+                                        <span class="font-semibold text-orange-600 text-sm whitespace-nowrap">{{ number_format($row['montant_factures'], 0) }} {{ $client->devise }}</span>
+                                    </div>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

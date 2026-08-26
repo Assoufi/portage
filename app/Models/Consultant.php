@@ -42,6 +42,11 @@ class Consultant extends Model
         return $this->hasMany(Mission::class);
     }
 
+    public function factures()
+    {
+        return $this->hasMany(Facture::class);
+    }
+
     public function missionsActives()
     {
         return $this->missions()->whereNull('date_fin')

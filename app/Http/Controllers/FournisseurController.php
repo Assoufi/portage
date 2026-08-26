@@ -79,9 +79,36 @@ class FournisseurController extends Controller
             'missions_encours' => $fournisseur->missions()->whereNull('date_fin')->count(),
             'missions_terminees' => $fournisseur->missions()->whereNotNull('date_fin')->count(),
             'cout_total' => $fournisseur->missions()->sum(DB::raw('tjm * taux')),
+            'factures_total' => $fournisseur->factures()->count(),
+            'factures_reglees' => $fournisseur->factures()->whereNotNull('date_reglement')->count(),
+            'factures_impayees' => $fournisseur->factures()->whereNull('date_reglement')->count(),
+            'factures_montant_total' => $fournisseur->factures()->sum('montant'),
+            'factures_montant_regle' => $fournisseur->factures()->whereNotNull('date_reglement')->sum('montant'),
         ];
-        
-        return view('fournisseurs.show', compact('fournisseur', 'stats'));
+
+        $missionsParAnnee = $fournisseur->missions()
+            ->selectRaw('YEAR(date_debut) as annee, COUNT(*) as nb_missions, SUM(tjm * taux) as cout')
+            ->groupByRaw('YEAR(date_debut)')
+            ->orderBy('annee')
+            ->get();
+
+        $facturesParAnnee = $fournisseur->factures()
+            ->selectRaw('YEAR(date_facture) as annee, COUNT(*) as nb_factures, SUM(montant) as montant_total')
+            ->groupByRaw('YEAR(date_facture)')
+            ->orderBy('annee')
+            ->get();
+
+        $annees = $missionsParAnnee->pluck('annee')->merge($facturesParAnnee->pluck('annee'))->unique()->sort()->values();
+
+        $evolution = $annees->map(fn($annee) => [
+            'annee' => $annee,
+            'nb_missions' => $missionsParAnnee->where('annee', $annee)->first()->nb_missions ?? 0,
+            'cout' => $missionsParAnnee->where('annee', $annee)->first()->cout ?? 0,
+            'nb_factures' => $facturesParAnnee->where('annee', $annee)->first()->nb_factures ?? 0,
+            'montant_factures' => $facturesParAnnee->where('annee', $annee)->first()->montant_total ?? 0,
+        ]);
+
+        return view('fournisseurs.show', compact('fournisseur', 'stats', 'evolution'));
     }
 
     public function edit(Fournisseur $fournisseur)

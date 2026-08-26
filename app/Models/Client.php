@@ -46,6 +46,11 @@ class Client extends Model
         return $this->hasMany(Mission::class);
     }
 
+    public function factures()
+    {
+        return $this->hasMany(Facture::class);
+    }
+
     // Accesseurs
     public function getNomCompletAttribute(): string
     {

@@ -100,6 +100,31 @@
                             <span class="text-gray-600">CA total</span>
                             <span class="font-bold text-purple-600">{{ number_format($stats['ca_total'], 2) }} MAD</span>
                         </div>
+
+                        <div class="flex justify-between items-center pt-4 border-t">
+                            <span class="text-gray-600 font-semibold">Factures</span>
+                            <span class="font-bold text-xl text-orange-600">{{ $stats['factures_total'] }}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Factures réglées</span>
+                            <span class="font-bold text-green-600">{{ $stats['factures_reglees'] }}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Factures impayées</span>
+                            <span class="font-bold text-red-600">{{ $stats['factures_impayees'] }}</span>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2 border-t">
+                            <span class="text-gray-600">Montant total factures</span>
+                            <span class="font-bold text-orange-600">{{ number_format($stats['factures_montant_total'], 2) }} MAD</span>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Montant réglé</span>
+                            <span class="font-bold text-green-600">{{ number_format($stats['factures_montant_regle'], 2) }} MAD</span>
+                        </div>
                     </div>
                 </div>
             </div>

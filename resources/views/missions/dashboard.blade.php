@@ -86,7 +86,7 @@
                     @foreach($topClients as $client)
                         <div class="flex justify-between items-center">
                             <div>
-                                <p class="font-medium">{{ $client->email }}</p>
+                                <p class="font-medium">{{ $client->nom }}</p>
                                 <p class="text-sm text-gray-500">{{ $client->missions_count }} missions</p>
                             </div>
                             <p class="font-bold text-green-600">{{ number_format($client->missions_sum_prix_vente ?? 0, 2) }} MAD</p>
