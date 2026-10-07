@@ -17,13 +17,17 @@ class Client extends Model
         'nom',       
         'adresse',
         'email',
-        'ice',
+        'type_identification',
+        'num_identification',
         'tva',
         'devise',
         'statut',
         'contact',
         'periodicite',
-        'mode_livraison'
+        'mode_livraison',
+        'adresse_facturation',
+        'delai_paiement',
+        'remarques'
     ];
 
     protected $casts = [
@@ -31,7 +35,8 @@ class Client extends Model
         'tva' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime'
+        'deleted_at' => 'datetime',
+        'delai_paiement' => 'integer'
     ];
 
     protected $attributes = [
@@ -90,15 +95,9 @@ class Client extends Model
         $this->attributes['email'] = $value ? strtolower(trim($value)) : null;
     }
 
-    public function setIceAttribute($value)
+    public function setNumIdentificationAttribute($value)
     {
-        $this->attributes['ice'] = strtoupper(trim($value));
-    }
-
-    // Validation personnalisée pour ICE
-    public static function validateIce($ice): bool
-    {
-        return strlen($ice) === 15 && preg_match('/^[A-Z0-9]{15}$/', $ice);
+        $this->attributes['num_identification'] = $value !== null && $value !== '' ? strtoupper(trim($value)) : null;
     }
 
     // Scopes
@@ -116,7 +115,7 @@ class Client extends Model
     {
         return $query->where('nom', 'LIKE', "%{$terme}%")  // AJOUT : Recherche par nom
                      ->orWhere('email', 'LIKE', "%{$terme}%")
-                     ->orWhere('ice', 'LIKE', "%{$terme}%")
+                     ->orWhere('num_identification', 'LIKE', "%{$terme}%")
                      ->orWhere('adresse', 'LIKE', "%{$terme}%");
     }
 }

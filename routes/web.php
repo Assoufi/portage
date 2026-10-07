@@ -34,8 +34,8 @@ Route::middleware(['auth'])->group(function () {
     
     // Routes pour les Clients
     Route::resource('clients', ClientController::class);
-    Route::get('clients/check-ice', [ClientController::class, 'checkIce'])
-        ->name('clients.check-ice');
+    Route::get('clients/check-identification', [ClientController::class, 'checkIdentification'])
+        ->name('clients.check-identification');
     
     // Routes pour les Fournisseurs
     Route::resource('fournisseurs', FournisseurController::class);

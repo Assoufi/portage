@@ -35,17 +35,18 @@ class ClientRequest extends FormRequest
                 'max:255',
                 'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'
             ],
-            'ice' => [
-                'required',
+            'type_identification' => [
+                'nullable',
                 'string',
-                'size:15',
-                'unique:clients,ice,' . $clientId,
-                'regex:/^[A-Z0-9]{15}$/',
-                function ($attribute, $value, $fail) {
-                    if (!preg_match('/^[A-Z0-9]{15}$/', $value)) {
-                        $fail('L\'ICE doit être composé exactement de 15 caractères alphanumériques majuscules.');
-                    }
-                }
+                'max:50'
+            ],
+            'num_identification' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('clients', 'num_identification')
+                    ->ignore($clientId)
+                    ->where(fn ($query) => $query->whereNotNull('num_identification'))
             ],
             'tva' => [
                 'required',
@@ -62,6 +63,22 @@ class ClientRequest extends FormRequest
             'statut' => [
                 'required',
                 'boolean'
+            ],
+            'adresse_facturation' => [
+                'nullable',
+                'string',
+                'max:1000'
+            ],
+            'delai_paiement' => [
+                'nullable',
+                'integer',
+                'min:0',
+                'max:365'
+            ],
+            'remarques' => [
+                'nullable',
+                'string',
+                'max:2000'
             ]
         ];
     }
@@ -77,10 +94,10 @@ class ClientRequest extends FormRequest
             
             'email.email' => 'Veuillez saisir une adresse email valide.',
             
-            'ice.required' => 'L\'ICE est obligatoire.',
-            'ice.size' => 'L\'ICE doit contenir exactement 15 caractères.',
-            'ice.unique' => 'Cet ICE est déjà utilisé.',
-            'ice.regex' => 'L\'ICE doit contenir uniquement des lettres majuscules et des chiffres.',
+            'type_identification.max' => 'Le type d\'identification ne doit pas dépasser 50 caractères.',
+
+            'num_identification.unique' => 'Ce numéro d\'identification est déjà utilisé.',
+            'num_identification.max' => 'Le numéro d\'identification ne doit pas dépasser 50 caractères.',
             
             'tva.required' => 'Le taux de TVA est obligatoire.',
             'tva.numeric' => 'Le taux de TVA doit être un nombre.',
@@ -91,7 +108,15 @@ class ClientRequest extends FormRequest
             'devise.in' => 'La devise sélectionnée n\'est pas supportée.',
             
             'statut.required' => 'Le statut est obligatoire.',
-            'statut.boolean' => 'Le statut doit être vrai ou faux.'
+            'statut.boolean' => 'Le statut doit être vrai ou faux.',
+
+            'adresse_facturation.max' => 'L\'adresse de facturation ne doit pas dépasser 1000 caractères.',
+
+            'delai_paiement.integer' => 'Le délai de paiement doit être un nombre entier de jours.',
+            'delai_paiement.min' => 'Le délai de paiement ne peut pas être négatif.',
+            'delai_paiement.max' => 'Le délai de paiement ne peut pas dépasser 365 jours.',
+
+            'remarques.max' => 'Les remarques ne doivent pas dépasser 2000 caractères.'
         ];
     }
 
@@ -100,7 +125,7 @@ class ClientRequest extends FormRequest
         $this->merge([
             'nom' => ucwords(strtolower(trim($this->nom))),  
             'email' => $this->email ? strtolower(trim($this->email)) : null,
-            'ice' => strtoupper(preg_replace('/\s+/', '', $this->ice)),
+            'num_identification' => $this->num_identification ? strtoupper(trim($this->num_identification)) : null,
             'tva' => floatval($this->tva)
         ]);
     }

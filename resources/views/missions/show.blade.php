@@ -39,7 +39,9 @@
                         <div>
                             <p class="text-sm text-gray-600">Client</p>
                             <p class="font-medium">{{ $mission->client->nom }}</p>
-                            <p class="text-sm text-gray-500">ICE: {{ $mission->client->ice }}</p>
+                            @if($mission->client->num_identification)
+                                <p class="text-sm text-gray-500">{{ $mission->client->type_identification }}: {{ $mission->client->num_identification }}</p>
+                            @endif
                         </div>
                         
                         <div>

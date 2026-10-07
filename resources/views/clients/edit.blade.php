@@ -55,22 +55,42 @@
                         <p x-show="errors.adresse" x-text="errors.adresse" class="text-red-500 text-xs mt-1"></p>
                     </div>
                     
-                    <!-- ICE -->
-                    <div>
-                        <label for="ice" class="block text-sm font-medium text-gray-700 mb-2">
-                            ICE (15 caractères) *
+                    <!-- Adresse de facturation -->
+                    <div class="md:col-span-2">
+                        <label for="adresse_facturation" class="block text-sm font-medium text-gray-700 mb-2">
+                            Adresse de facturation
                         </label>
-                        <input type="text" name="ice" id="ice" x-model="form.ice"
-                               @input="validateIce()"
-                               @blur="checkIceUniqueness()"
-                               maxlength="15"
-                               class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 uppercase"
-                               :class="errors.ice ? 'border-red-500' : 'border-gray-300'"
+                        <textarea name="adresse_facturation" id="adresse_facturation" rows="3" maxlength="1000" x-model="form.adresse_facturation"
+                                  class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                                  :class="errors.adresse_facturation ? 'border-red-500' : 'border-gray-300'">{{ old('adresse_facturation', $client->adresse_facturation) }}</textarea>
+                    </div>
+                    
+                    <!-- Type d'identification -->
+                    <div>
+                        <label for="type_identification" class="block text-sm font-medium text-gray-700 mb-2">
+                            Type d'identification
+                        </label>
+                        <input type="text" name="type_identification" id="type_identification" x-model="form.type_identification"
+                               maxlength="50"
+                               class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                               placeholder="ICE, IF, RC...">
+                    </div>
+                    
+                    <!-- Numéro d'identification -->
+                    <div>
+                        <label for="num_identification" class="block text-sm font-medium text-gray-700 mb-2">
+                            Numéro d'identification
+                        </label>
+                        <input type="text" name="num_identification" id="num_identification" x-model="form.num_identification"
+                               @input="form.num_identification = form.num_identification.toUpperCase()"
+                               @blur="checkNumIdentification()"
+                               maxlength="50"
+                               class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                               :class="errors.num_identification ? 'border-red-500' : 'border-gray-300'
                                placeholder="123456789012345">
-                        <p x-show="errors.ice" x-text="errors.ice" class="text-red-500 text-xs mt-1"></p>
-                        <p x-show="iceValid && !errors.ice && form.ice" class="text-green-500 text-xs mt-1">✓ Format ICE valide</p>
-                        <p x-show="iceChecking" class="text-blue-500 text-xs mt-1">Vérification de l'unicité...</p>
-                        <p x-show="iceUnique === false && !errors.ice" class="text-red-500 text-xs mt-1">⚠ Cet ICE est déjà utilisé.</p>
+                        <p x-show="errors.num_identification" x-text="errors.num_identification" class="text-red-500 text-xs mt-1"></p>
+                        <p x-show="numChecking" class="text-blue-500 text-xs mt-1">Vérification de l'unicité...</p>
+                        <p x-show="numUnique === false && !errors.num_identification" class="text-red-500 text-xs mt-1">⚠ Ce numéro est déjà utilisé.</p>
                     </div>
                     
                     <!-- TVA -->
@@ -100,6 +120,17 @@
                         </select>
                     </div>
                     
+                    <!-- Délai de paiement -->
+                    <div>
+                        <label for="delai_paiement" class="block text-sm font-medium text-gray-700 mb-2">
+                            Délai de paiement (jours)
+                        </label>
+                        <input type="number" name="delai_paiement" id="delai_paiement" x-model="form.delai_paiement" min="0" max="365"
+                               class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                               :class="errors.delai_paiement ? 'border-red-500' : 'border-gray-300'"
+                               placeholder="Ex : 30">
+                    </div>
+                    
                     <!-- Statut -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -115,6 +146,16 @@
                                 <span class="ml-2">Inactif</span>
                             </label>
                         </div>
+                    </div>
+                    
+                    <!-- Remarques -->
+                    <div class="md:col-span-2">
+                        <label for="remarques" class="block text-sm font-medium text-gray-700 mb-2">
+                            Remarques
+                        </label>
+                        <textarea name="remarques" id="remarques" rows="3" maxlength="2000" x-model="form.remarques"
+                                  class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                                  :class="errors.remarques ? 'border-red-500' : 'border-gray-300'">{{ old('remarques', $client->remarques) }}</textarea>
                     </div>
                 </div>
                 
@@ -143,17 +184,20 @@
                     nom: '{{ old('nom', $client->nom) }}',
                     adresse: '{{ old('adresse', $client->adresse) }}',
                     email: '{{ old('email', $client->email) }}',
-                    ice: '{{ old('ice', $client->ice) }}',
+                    type_identification: '{{ old('type_identification', $client->type_identification) }}',
+                    num_identification: '{{ old('num_identification', $client->num_identification) }}',
                     tva: '{{ old('tva', $client->tva) }}',
                     devise: '{{ old('devise', $client->devise) }}',
-                    statut: '{{ old('statut', $client->statut ? '1' : '0') }}'
+                    statut: '{{ old('statut', $client->statut ? '1' : '0') }}',
+                    adresse_facturation: '{{ old('adresse_facturation', $client->adresse_facturation) }}',
+                    delai_paiement: '{{ old('delai_paiement', $client->delai_paiement) }}',
+                    remarques: '{{ old('remarques', $client->remarques) }}'
                 },
                 errors: {},
                 isSubmitting: false,
                 emailValid: false,
-                iceValid: false,
-                iceUnique: null,
-                iceChecking: false,
+                numUnique: null,
+                numChecking: false,
                 
                 init() {
                     this.validateAll();
@@ -198,40 +242,26 @@
                     }
                 },
                 
-                validateIce() {
-                    const iceRegex = /^[A-Z0-9]{15}$/;
-                    const iceValue = this.form.ice.toUpperCase();
-                    this.form.ice = iceValue;
-                    
-                    if (!this.form.ice) {
-                        this.errors.ice = 'L\'ICE est obligatoire.';
-                        this.iceValid = false;
-                    } else if (!iceRegex.test(iceValue)) {
-                        this.errors.ice = 'L\'ICE doit contenir exactement 15 caractères alphanumériques majuscules.';
-                        this.iceValid = false;
-                    } else {
-                        delete this.errors.ice;
-                        this.iceValid = true;
+                async checkNumIdentification() {
+                    if (!this.form.num_identification) {
+                        this.numUnique = null;
+                        return;
                     }
-                },
-                
-                async checkIceUniqueness() {
-                    if (!this.iceValid) return;
                     
-                    this.iceChecking = true;
+                    this.numChecking = true;
                     try {
-                        const response = await fetch(`{{ route('clients.check-ice') }}?ice=${this.form.ice}&id={{ $client->id }}`);
+                        const response = await fetch(`{{ route('clients.check-identification') }}?num_identification=${encodeURIComponent(this.form.num_identification)}&id={{ $client->id }}`);
                         const data = await response.json();
-                        this.iceUnique = data.unique;
+                        this.numUnique = data.unique;
                         if (!data.unique) {
-                            this.errors.ice = 'Cet ICE est déjà utilisé par un autre client.';
-                        } else if (this.iceValid) {
-                            delete this.errors.ice;
+                            this.errors.num_identification = 'Ce numéro d\'identification est déjà utilisé par un autre client.';
+                        } else {
+                            delete this.errors.num_identification;
                         }
                     } catch (error) {
-                        console.error('Erreur lors de la vérification ICE:', error);
+                        console.error('Erreur lors de la vérification du numéro d\'identification:', error);
                     } finally {
-                        this.iceChecking = false;
+                        this.numChecking = false;
                     }
                 },
                 
@@ -250,21 +280,19 @@
                     this.validateNom();
                     this.validateAdresse();
                     this.validateEmail();
-                    this.validateIce();
                     this.validateTva();
                 },
                 
                 get isFormValid() {
                     return Object.keys(this.errors).length === 0 &&
                            this.form.nom &&
-                           this.iceValid &&
-                           this.iceUnique !== false &&
+                           this.numUnique !== false &&
                            this.form.tva !== '';
                 },
                 
                 async validateAndSubmit() {
                     this.validateAll();
-                    await this.checkIceUniqueness();
+                    await this.checkNumIdentification();
                     
                     if (this.isFormValid) {
                         this.isSubmitting = true;

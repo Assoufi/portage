@@ -41,13 +41,22 @@
                         </div>
                         
                         <div>
-                            <p class="text-sm text-gray-600">ICE</p>
-                            <code class="text-sm bg-gray-100 px-2 py-1 rounded">{{ $client->ice }}</code>
+                            <p class="text-sm text-gray-600">Identification</p>
+                            @if($client->num_identification)
+                                <code class="text-sm bg-gray-100 px-2 py-1 rounded">{{ $client->type_identification }} : {{ $client->num_identification }}</code>
+                            @else
+                                <p class="text-sm text-gray-400">Non renseignée</p>
+                            @endif
                         </div>
                         
                         <div>
                             <p class="text-sm text-gray-600">Adresse</p>
                             <p class="font-medium">{{ $client->adresse }}</p>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <p class="text-sm text-gray-600">Adresse de facturation</p>
+                            <p class="font-medium whitespace-pre-line">{{ $client->adresse_facturation ?? 'Non renseignée' }}</p>
                         </div>
                         
                         <div>
@@ -61,6 +70,11 @@
                         </div>
                         
                         <div>
+                            <p class="text-sm text-gray-600">Délai de paiement</p>
+                            <p class="font-medium">{{ $client->delai_paiement ? $client->delai_paiement . ' jours' : 'Non renseigné' }}</p>
+                        </div>
+                        
+                        <div>
                             <p class="text-sm text-gray-600">Statut</p>
                             {!! $client->statut_badge !!}
                         </div>
@@ -68,6 +82,11 @@
                         <div>
                             <p class="text-sm text-gray-600">Date d'inscription</p>
                             <p class="font-medium">{{ $client->created_at->format('d/m/Y H:i') }}</p>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <p class="text-sm text-gray-600">Remarques</p>
+                            <p class="font-medium whitespace-pre-line">{{ $client->remarques ?? 'Non renseignées' }}</p>
                         </div>
                         
                         <div>

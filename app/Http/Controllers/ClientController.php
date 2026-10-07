@@ -171,9 +171,9 @@ class ClientController extends Controller
         }
     }
 
-    public function checkIce(Request $request)
+    public function checkIdentification(Request $request)
     {
-        $exists = Client::where('ice', $request->ice)
+        $exists = Client::where('num_identification', $request->num_identification)
             ->when($request->id, fn($q) => $q->where('id', '!=', $request->id))
             ->exists();
             
