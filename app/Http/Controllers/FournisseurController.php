@@ -1,18 +1,20 @@
 <?php
+
 // app/Http/Controllers/FournisseurController.php
 
 namespace App\Http\Controllers;
 
-use App\Models\Fournisseur;
 use App\Http\Requests\FournisseurRequest;
+use App\Models\Fournisseur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class FournisseurController extends Controller
 {
     public function __construct()
     {
-        //$this->authorizeResource(Fournisseur::class, 'fournisseur');
+        // $this->authorizeResource(Fournisseur::class, 'fournisseur');
     }
 
     public function index(Request $request)
@@ -38,8 +40,8 @@ class FournisseurController extends Controller
 
     public function create()
     {
-        $fournisseur = new Fournisseur();
-        
+        $fournisseur = new Fournisseur;
+
         return view('fournisseurs.create', compact('fournisseur'));
     }
 
@@ -47,33 +49,33 @@ class FournisseurController extends Controller
     {
         try {
             DB::beginTransaction();
-            
-            $fournisseur = Fournisseur::create($request->validated());
-            
+
+            $fournisseur = Fournisseur::create($this->prepareFournisseurData($request));
+
             DB::commit();
-            
+
             return redirect()
                 ->route('fournisseurs.index')
                 ->with('success', 'Fournisseur créé avec succès.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Erreur lors de la création du fournisseur : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la création du fournisseur : '.$e->getMessage());
         }
     }
 
     public function show(Fournisseur $fournisseur)
     {
-        $fournisseur->load(['missions' => function($query) {
+        $fournisseur->load(['missions' => function ($query) {
             $query->with(['consultant', 'client'])
-                  ->orderBy('date_debut', 'desc')
-                  ->limit(10);
+                ->orderBy('date_debut', 'desc')
+                ->limit(10);
         }]);
-        
+
         $stats = [
             'missions_total' => $fournisseur->missions()->count(),
             'missions_encours' => $fournisseur->missions()->whereNull('date_fin')->count(),
@@ -100,7 +102,7 @@ class FournisseurController extends Controller
 
         $annees = $missionsParAnnee->pluck('annee')->merge($facturesParAnnee->pluck('annee'))->unique()->sort()->values();
 
-        $evolution = $annees->map(fn($annee) => [
+        $evolution = $annees->map(fn ($annee) => [
             'annee' => $annee,
             'nb_missions' => $missionsParAnnee->where('annee', $annee)->first()->nb_missions ?? 0,
             'cout' => $missionsParAnnee->where('annee', $annee)->first()->cout ?? 0,
@@ -120,22 +122,22 @@ class FournisseurController extends Controller
     {
         try {
             DB::beginTransaction();
-            
-            $fournisseur->update($request->validated());
-            
+
+            $fournisseur->update($this->prepareFournisseurData($request, $fournisseur));
+
             DB::commit();
-            
+
             return redirect()
                 ->route('fournisseurs.index')
                 ->with('success', 'Fournisseur mis à jour avec succès.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Erreur lors de la mise à jour du fournisseur : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la mise à jour du fournisseur : '.$e->getMessage());
         }
     }
 
@@ -147,23 +149,53 @@ class FournisseurController extends Controller
                     ->back()
                     ->with('error', 'Impossible de supprimer ce fournisseur car il est lié à des missions.');
             }
-            
+
             DB::beginTransaction();
-            
+
             $fournisseur->delete();
-            
+
+            foreach (['signature', 'logo'] as $champ) {
+                if ($fournisseur->{$champ}) {
+                    Storage::disk('public')->delete($fournisseur->{$champ});
+                }
+            }
+
             DB::commit();
-            
+
             return redirect()
                 ->route('fournisseurs.index')
                 ->with('success', 'Fournisseur supprimé avec succès.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()
                 ->back()
-                ->with('error', 'Erreur lors de la suppression du fournisseur : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la suppression du fournisseur : '.$e->getMessage());
         }
+    }
+
+    /**
+     * Extrait les données validées en gérant l'upload des images :
+     * nouveau fichier -> stockage + suppression de l'ancien,
+     * aucun fichier -> conserve la valeur existante.
+     */
+    private function prepareFournisseurData(FournisseurRequest $request, ?Fournisseur $fournisseur = null): array
+    {
+        $data = $request->validated();
+
+        foreach (['signature', 'logo'] as $champ) {
+            if ($request->hasFile($champ)) {
+                if ($fournisseur && $fournisseur->{$champ}) {
+                    Storage::disk('public')->delete($fournisseur->{$champ});
+                }
+
+                $data[$champ] = $request->file($champ)->store('fournisseurs', 'public');
+            } else {
+                unset($data[$champ]);
+            }
+        }
+
+        return $data;
     }
 }

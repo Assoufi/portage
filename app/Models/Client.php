@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/Client.php
 
 namespace App\Models;
@@ -14,7 +15,7 @@ class Client extends Model
     protected $table = 'clients';
 
     protected $fillable = [
-        'nom',       
+        'nom',
         'adresse',
         'email',
         'type_identification',
@@ -25,9 +26,12 @@ class Client extends Model
         'contact',
         'periodicite',
         'mode_livraison',
+        'telephone',
+        'notifyto',
+        'notifycc',
         'adresse_facturation',
         'delai_paiement',
-        'remarques'
+        'remarques',
     ];
 
     protected $casts = [
@@ -36,13 +40,14 @@ class Client extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
-        'delai_paiement' => 'integer'
+        'delai_paiement' => 'integer',
+        'mode_livraison' => 'array',
     ];
 
     protected $attributes = [
         'statut' => true,
         'tva' => 20.00,
-        'devise' => 'MAD'
+        'devise' => 'MAD',
     ];
 
     // Relations
@@ -69,14 +74,14 @@ class Client extends Model
 
     public function getStatutBadgeAttribute(): string
     {
-        return $this->statut 
+        return $this->statut
             ? '<span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-200 rounded-full">Actif</span>'
             : '<span class="px-2 py-1 text-xs font-semibold text-red-800 bg-red-200 rounded-full">Inactif</span>';
     }
 
     public function getTvaFormattedAttribute(): string
     {
-        return number_format($this->tva, 2) . ' %';
+        return number_format($this->tva, 2).' %';
     }
 
     // Mutateurs
@@ -100,6 +105,21 @@ class Client extends Model
         $this->attributes['num_identification'] = $value !== null && $value !== '' ? strtoupper(trim($value)) : null;
     }
 
+    public function setTelephoneAttribute($value)
+    {
+        $this->attributes['telephone'] = $value !== null && trim($value) !== '' ? trim($value) : null;
+    }
+
+    public function setNotifytoAttribute($value)
+    {
+        $this->attributes['notifyto'] = $value !== null && trim($value) !== '' ? trim($value) : null;
+    }
+
+    public function setNotifyccAttribute($value)
+    {
+        $this->attributes['notifycc'] = $value !== null && trim($value) !== '' ? trim($value) : null;
+    }
+
     // Scopes
     public function scopeActif($query)
     {
@@ -114,8 +134,8 @@ class Client extends Model
     public function scopeRecherche($query, $terme)
     {
         return $query->where('nom', 'LIKE', "%{$terme}%")  // AJOUT : Recherche par nom
-                     ->orWhere('email', 'LIKE', "%{$terme}%")
-                     ->orWhere('num_identification', 'LIKE', "%{$terme}%")
-                     ->orWhere('adresse', 'LIKE', "%{$terme}%");
+            ->orWhere('email', 'LIKE', "%{$terme}%")
+            ->orWhere('num_identification', 'LIKE', "%{$terme}%")
+            ->orWhere('adresse', 'LIKE', "%{$terme}%");
     }
 }

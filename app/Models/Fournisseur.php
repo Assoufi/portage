@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/Fournisseur.php
 
 namespace App\Models;
@@ -6,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Fournisseur extends Model
 {
@@ -21,8 +23,12 @@ class Fournisseur extends Model
         'responsable',
         'ice',
         'rib',
+        'iban',
+        'signature',
+        'logo',
+        'footer',
         'taux',
-        'statut'
+        'statut',
     ];
 
     protected $casts = [
@@ -30,12 +36,12 @@ class Fournisseur extends Model
         'taux' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime'
+        'deleted_at' => 'datetime',
     ];
 
     protected $attributes = [
         'statut' => true,
-        'taux' => 0.00
+        'taux' => 0.00,
     ];
 
     // Relations
@@ -57,17 +63,33 @@ class Fournisseur extends Model
 
     public function getStatutBadgeAttribute(): string
     {
-        return $this->statut 
+        return $this->statut
             ? '<span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-200 rounded-full">Actif</span>'
             : '<span class="px-2 py-1 text-xs font-semibold text-red-800 bg-red-200 rounded-full">Inactif</span>';
     }
 
     public function getTauxFormattedAttribute(): string
     {
-        return number_format($this->taux, 2) . ' %';
+        return number_format($this->taux, 2).' %';
+    }
+
+    public function getSignatureUrlAttribute(): ?string
+    {
+        return $this->signature ? Storage::disk('public')->url($this->signature) : null;
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        return $this->logo ? Storage::disk('public')->url($this->logo) : null;
     }
 
     // Mutateurs
+    public function setFooterAttribute($value)
+    {
+        $trimmed = is_string($value) ? trim($value) : $value;
+        $this->attributes['footer'] = ($trimmed === '' || $trimmed === null) ? null : $trimmed;
+    }
+
     public function setTauxAttribute($value)
     {
         $this->attributes['taux'] = ($value === '' || $value === null) ? 0 : $value;
@@ -88,6 +110,11 @@ class Fournisseur extends Model
         $this->attributes['responsable'] = $value ? trim($value) : null;
     }
 
+    public function setIbanAttribute($value)
+    {
+        $this->attributes['iban'] = $value ? strtoupper(preg_replace('/\s+/', '', $value)) : null;
+    }
+
     // Validation personnalisée pour ICE
     public static function validateIce($ice): bool
     {
@@ -103,8 +130,9 @@ class Fournisseur extends Model
     public function scopeRecherche($query, $terme)
     {
         return $query->where('nom', 'LIKE', "%{$terme}%")
-                     ->orWhere('email', 'LIKE', "%{$terme}%")
-                     ->orWhere('ice', 'LIKE', "%{$terme}%")
-                     ->orWhere('adresse', 'LIKE', "%{$terme}%");
+            ->orWhere('email', 'LIKE', "%{$terme}%")
+            ->orWhere('ice', 'LIKE', "%{$terme}%")
+            ->orWhere('iban', 'LIKE', "%{$terme}%")
+            ->orWhere('adresse', 'LIKE', "%{$terme}%");
     }
 }

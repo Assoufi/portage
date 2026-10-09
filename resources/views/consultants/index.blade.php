@@ -23,7 +23,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Recherche</label>
                     <input type="text" name="search" value="{{ request('search') }}" 
-                           placeholder="Nom, email ou téléphone..."
+                           placeholder="Nom, CIN, email ou téléphone..."
                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                 </div>
                 
@@ -69,6 +69,9 @@
                             </a>
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            CIN / Fonction
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Contact
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -88,6 +91,10 @@
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900">{{ $consultant->nom }}</div>
                                 <div class="text-sm text-gray-500">ID: #{{ $consultant->id }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-900">{{ $consultant->cin ?? '—' }}</div>
+                                <div class="text-sm text-gray-500">{{ $consultant->fonction ?? 'Non renseignée' }}</div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm text-gray-900">{{ $consultant->email }}</div>
@@ -136,7 +143,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">
                                 Aucun consultant trouvé.
                                 <a href="{{ route('consultants.create') }}" class="text-blue-600 hover:text-blue-900 ml-2">Créer un consultant</a>
                             </td>

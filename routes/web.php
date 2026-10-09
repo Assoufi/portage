@@ -1,14 +1,17 @@
 <?php
+
 // routes/web.php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ConsultantController;
+use App\Http\Controllers\AttestationController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ConsultantController;
+use App\Http\Controllers\DevisController;
+use App\Http\Controllers\FactureController;
 use App\Http\Controllers\FournisseurController;
 use App\Http\Controllers\MissionController;
 use App\Http\Controllers\PaiementController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RepartitionController;
-use App\Http\Controllers\FactureController;
 use App\Http\Controllers\StatsController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,39 +25,39 @@ require __DIR__.'/auth.php';
 
 // Routes protégées par authentification
 Route::middleware(['auth'])->group(function () {
-    
+
     // Dashboard principal
     Route::get('/dashboard', [MissionController::class, 'dashboard'])
         ->name('dashboard');
-    
+
     // Routes pour les Consultants
     Route::resource('consultants', ConsultantController::class);
     Route::get('consultants/{consultant}/export', [ConsultantController::class, 'export'])
         ->name('consultants.export');
-    
+
     // Routes pour les Clients
     Route::resource('clients', ClientController::class);
     Route::get('clients/check-identification', [ClientController::class, 'checkIdentification'])
         ->name('clients.check-identification');
-    
+
     // Routes pour les Fournisseurs
     Route::resource('fournisseurs', FournisseurController::class);
-    
+
     // Routes pour les Missions
     Route::resource('missions', MissionController::class);
     Route::post('missions/calculate-prix-vente', [MissionController::class, 'calculatePrixVente'])
         ->name('missions.calculate-prix-vente');
     Route::get('missions/dashboard', [MissionController::class, 'dashboard'])
         ->name('missions.dashboard');
-    
+
     // Routes pour les Paiements
     Route::post('paiements/importer', [PaiementController::class, 'importer'])
         ->name('paiements.importer');
     Route::resource('paiements', PaiementController::class);
-    
+
     // Routes pour les Répartitions
     Route::resource('repartitions', RepartitionController::class);
-    
+
     // Routes pour les Factures
     Route::get('factures/numero-suivant', [FactureController::class, 'numeroSuivant'])
         ->name('factures.numero-suivant');
@@ -65,7 +68,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('factures/{facture}/cloner-donnees', [FactureController::class, 'clonerDonnees'])
         ->name('factures.cloner-donnees');
     Route::resource('factures', FactureController::class);
-    
+
+    // Routes pour les Attestations de mission (menu Documents)
+    Route::get('attestations/{attestation}/pdf', [AttestationController::class, 'pdf'])
+        ->name('attestations.pdf');
+    Route::resource('attestations', AttestationController::class);
+
+    // Routes pour les Devis (menu Documents)
+    Route::get('devis/{devis}/pdf', [DevisController::class, 'pdf'])
+        ->name('devis.pdf');
+    Route::resource('devis', DevisController::class)->parameters(['devis' => 'devis']);
+
     // Routes Stats
     Route::get('/stats/prestations-non-declarees', [StatsController::class, 'prestationsNonDeclarees'])
         ->name('stats.prestations-non-declarees');

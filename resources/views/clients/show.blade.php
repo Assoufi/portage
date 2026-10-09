@@ -75,6 +75,31 @@
                         </div>
                         
                         <div>
+                            <p class="text-sm text-gray-600">Téléphone</p>
+                            <p class="font-medium">{{ $client->telephone ?? 'Non renseigné' }}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-600">Périodicité</p>
+                            <p class="font-medium">{{ $client->periodicite ?? 'Non renseignée' }}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-600">Mode de livraison</p>
+                            <p class="font-medium">{{ $client->mode_livraison ? implode(', ', $client->mode_livraison) : 'Non renseigné' }}</p>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <p class="text-sm text-gray-600">Notifier à</p>
+                            <p class="font-medium whitespace-pre-line">{{ $client->notifyto ?? 'Non renseigné' }}</p>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <p class="text-sm text-gray-600">Copie notification</p>
+                            <p class="font-medium whitespace-pre-line">{{ $client->notifycc ?? 'Non renseignée' }}</p>
+                        </div>
+                        
+                        <div>
                             <p class="text-sm text-gray-600">Statut</p>
                             {!! $client->statut_badge !!}
                         </div>

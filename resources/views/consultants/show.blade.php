@@ -36,6 +36,16 @@
                         </div>
                         
                         <div>
+                            <p class="text-sm text-gray-600">CIN</p>
+                            <p class="font-medium">{{ $consultant->cin ?? 'Non renseigné' }}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm text-gray-600">Fonction</p>
+                            <p class="font-medium">{{ $consultant->fonction ?? 'Non renseignée' }}</p>
+                        </div>
+                        
+                        <div>
                             <p class="text-sm text-gray-600">Email</p>
                             <p class="font-medium">{{ $consultant->email }}</p>
                         </div>

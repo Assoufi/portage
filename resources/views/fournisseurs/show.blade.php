@@ -61,6 +61,11 @@
                         </div>
                         
                         <div>
+                            <p class="text-sm text-gray-600">IBAN</p>
+                            <p class="font-medium">{{ $fournisseur->iban ?: 'Non renseigné' }}</p>
+                        </div>
+                        
+                        <div>
                             <p class="text-sm text-gray-600">Taux</p>
                             <p class="font-medium">{{ $fournisseur->taux_formatted }}</p>
                         </div>
@@ -79,6 +84,34 @@
                             <p class="text-sm text-gray-600">Dernière modification</p>
                             <p class="font-medium">{{ $fournisseur->updated_at->format('d/m/Y H:i') }}</p>
                         </div>
+
+                        <div class="md:col-span-2 pt-4 border-t">
+                            <p class="text-sm text-gray-600 mb-2">Visuels</p>
+                            <div class="flex items-center gap-6">
+                                @if($fournisseur->logo_url)
+                                    <div>
+                                        <p class="text-xs text-gray-500 mb-1">Logo</p>
+                                        <img src="{{ $fournisseur->logo_url }}" alt="Logo" class="h-14 object-contain bg-gray-50 rounded p-1">
+                                    </div>
+                                @endif
+                                @if($fournisseur->signature_url)
+                                    <div>
+                                        <p class="text-xs text-gray-500 mb-1">Signature</p>
+                                        <img src="{{ $fournisseur->signature_url }}" alt="Signature" class="h-14 object-contain bg-gray-50 rounded p-1">
+                                    </div>
+                                @endif
+                                @if(! $fournisseur->logo_url && ! $fournisseur->signature_url)
+                                    <p class="font-medium">Aucun visuel</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        @if($fournisseur->footer)
+                            <div class="md:col-span-2 pt-4 border-t">
+                                <p class="text-sm text-gray-600 mb-1">Footer</p>
+                                <p class="text-sm text-gray-800 whitespace-pre-line">{{ $fournisseur->footer }}</p>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

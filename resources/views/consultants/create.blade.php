@@ -28,6 +28,19 @@
                         <p x-show="errors.nom" x-text="errors.nom" class="text-red-500 text-xs mt-1"></p>
                     </div>
                     
+                    <!-- CIN -->
+                    <div>
+                        <label for="cin" class="block text-sm font-medium text-gray-700 mb-2">
+                            CIN
+                        </label>
+                        <input type="text" name="cin" id="cin" x-model="form.cin"
+                               @input="validateCin()"
+                               class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                               :class="errors.cin ? 'border-red-500' : 'border-gray-300'"
+                               placeholder="AB123456">
+                        <p x-show="errors.cin" x-text="errors.cin" class="text-red-500 text-xs mt-1"></p>
+                    </div>
+                    
                     <!-- Email -->
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
@@ -52,6 +65,19 @@
                                :class="errors.tel ? 'border-red-500' : 'border-gray-300'"
                                placeholder="+212 6XX XXX XXX">
                         <p x-show="errors.tel" x-text="errors.tel" class="text-red-500 text-xs mt-1"></p>
+                    </div>
+                    
+                    <!-- Fonction -->
+                    <div>
+                        <label for="fonction" class="block text-sm font-medium text-gray-700 mb-2">
+                            Fonction
+                        </label>
+                        <input type="text" name="fonction" id="fonction" x-model="form.fonction"
+                               @input="validateFonction()"
+                               class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                               :class="errors.fonction ? 'border-red-500' : 'border-gray-300'"
+                               placeholder="Développeur, Comptable...">
+                        <p x-show="errors.fonction" x-text="errors.fonction" class="text-red-500 text-xs mt-1"></p>
                     </div>
                     
                     <!-- RIB -->
@@ -122,6 +148,8 @@
             return {
                 form: {
                     nom: '{{ old('nom', '') }}',
+                    cin: '{{ old('cin', '') }}',
+                    fonction: '{{ old('fonction', '') }}',
                     email: '{{ old('email', '') }}',
                     tel: '{{ old('tel', '') }}',
                     rib: '{{ old('rib', '') }}',
@@ -192,8 +220,37 @@
                     }
                 },
                 
+                validateCin() {
+                    if (this.form.cin) {
+                        const cinRegex = /^[A-Za-z0-9\-]+$/;
+                        if (!cinRegex.test(this.form.cin)) {
+                            this.errors.cin = 'Le CIN ne doit contenir que des lettres, des chiffres ou des tirets.';
+                        } else if (this.form.cin.length > 30) {
+                            this.errors.cin = 'Le CIN ne doit pas dépasser 30 caractères.';
+                        } else {
+                            delete this.errors.cin;
+                        }
+                    } else {
+                        delete this.errors.cin;
+                    }
+                },
+                
+                validateFonction() {
+                    if (this.form.fonction) {
+                        if (this.form.fonction.length > 50) {
+                            this.errors.fonction = 'La fonction ne doit pas dépasser 50 caractères.';
+                        } else {
+                            delete this.errors.fonction;
+                        }
+                    } else {
+                        delete this.errors.fonction;
+                    }
+                },
+                
                 validateAll() {
                     this.validateNom();
+                    this.validateCin();
+                    this.validateFonction();
                     this.validateEmail();
                     this.validateTel();
                     this.validateRib();

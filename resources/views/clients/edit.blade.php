@@ -131,6 +131,86 @@
                                placeholder="Ex : 30">
                     </div>
                     
+                    <!-- Téléphone -->
+                    <div>
+                        <label for="telephone" class="block text-sm font-medium text-gray-700 mb-2">
+                            Téléphone
+                        </label>
+                        <input type="text" name="telephone" id="telephone" maxlength="20" x-model="form.telephone"
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('telephone') border-red-500 @enderror"
+                               placeholder="+212 6 00 00 00 00">
+                        @error('telephone')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    
+                    <!-- Périodicité -->
+                    <div>
+                        <label for="periodicite" class="block text-sm font-medium text-gray-700 mb-2">
+                            Périodicité
+                        </label>
+                        <select name="periodicite" id="periodicite" x-model="form.periodicite"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('periodicite') border-red-500 @enderror">
+                            <option value="">— Aucune —</option>
+                            <option value="Mensuelle">Mensuelle</option>
+                            <option value="Occasionnelle">Occasionnelle</option>
+                        </select>
+                        @error('periodicite')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    
+                    <!-- Mode de livraison -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Mode de livraison
+                        </label>
+                        <div class="flex flex-wrap items-center gap-4">
+                            @foreach(['Papier', 'Email', 'Whatsapp'] as $mode)
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="mode_livraison[]" value="{{ $mode }}"
+                                           x-model="form.mode_livraison"
+                                           class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring focus:ring-blue-200 @error('mode_livraison') border-red-500 @enderror">
+                                    <span class="ml-2">{{ $mode }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('mode_livraison')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                        @error('mode_livraison.*')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    
+                    <!-- Notifier à -->
+                    <div class="md:col-span-2">
+                        <label for="notifyto" class="block text-sm font-medium text-gray-700 mb-2">
+                            Notifier à
+                        </label>
+                        <input type="text" name="notifyto" id="notifyto" maxlength="250" x-model="form.notifyto"
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('notifyto') border-red-500 @enderror"
+                               placeholder="email1@exemple.ma; email2@exemple.ma">
+                        <p class="text-xs text-gray-500 mt-1">Plusieurs adresses possibles, séparées par « ; ».</p>
+                        @error('notifyto')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    
+                    <!-- Copie notification -->
+                    <div class="md:col-span-2">
+                        <label for="notifycc" class="block text-sm font-medium text-gray-700 mb-2">
+                            Copie notification
+                        </label>
+                        <input type="text" name="notifycc" id="notifycc" maxlength="250" x-model="form.notifycc"
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('notifycc') border-red-500 @enderror"
+                               placeholder="copie1@exemple.ma; copie2@exemple.ma">
+                        <p class="text-xs text-gray-500 mt-1">Plusieurs adresses possibles, séparées par « ; ».</p>
+                        @error('notifycc')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    
                     <!-- Statut -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -191,7 +271,12 @@
                     statut: '{{ old('statut', $client->statut ? '1' : '0') }}',
                     adresse_facturation: '{{ old('adresse_facturation', $client->adresse_facturation) }}',
                     delai_paiement: '{{ old('delai_paiement', $client->delai_paiement) }}',
-                    remarques: '{{ old('remarques', $client->remarques) }}'
+                    remarques: '{{ old('remarques', $client->remarques) }}',
+                    periodicite: '{{ old('periodicite', $client->periodicite) }}',
+                    mode_livraison: @js(old('mode_livraison', $client->mode_livraison ?? [])),
+                    telephone: '{{ old('telephone', $client->telephone) }}',
+                    notifyto: '{{ old('notifyto', $client->notifyto) }}',
+                    notifycc: '{{ old('notifycc', $client->notifycc) }}'
                 },
                 errors: {},
                 isSubmitting: false,

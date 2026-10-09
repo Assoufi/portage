@@ -1,19 +1,18 @@
 <?php
+
 // app/Http/Controllers/ConsultantController.php
 
 namespace App\Http\Controllers;
 
-use App\Models\Consultant;
+use App\Enums\ModePaiement;
 use App\Http\Requests\ConsultantRequest;
+use App\Models\Consultant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ConsultantController extends Controller
 {
-    public function __construct()
-    {
-        
-    }
+    public function __construct() {}
 
     /**
      * Affiche la liste des consultants
@@ -47,9 +46,9 @@ class ConsultantController extends Controller
      */
     public function create()
     {
-        $consultant = new Consultant();
-        $modesPaiement = \App\Enums\ModePaiement::cases();
-        
+        $consultant = new Consultant;
+        $modesPaiement = ModePaiement::cases();
+
         return view('consultants.create', compact('consultant', 'modesPaiement'));
     }
 
@@ -60,22 +59,22 @@ class ConsultantController extends Controller
     {
         try {
             DB::beginTransaction();
-            
+
             $consultant = Consultant::create($request->validated());
-            
+
             DB::commit();
-            
+
             return redirect()
                 ->route('consultants.index')
                 ->with('success', 'Consultant créé avec succès.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Erreur lors de la création du consultant : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la création du consultant : '.$e->getMessage());
         }
     }
 
@@ -84,12 +83,12 @@ class ConsultantController extends Controller
      */
     public function show(Consultant $consultant)
     {
-        $consultant->load(['missions' => function($query) {
+        $consultant->load(['missions' => function ($query) {
             $query->with(['client', 'fournisseur'])
-                  ->orderBy('date_debut', 'desc')
-                  ->limit(10);
+                ->orderBy('date_debut', 'desc')
+                ->limit(10);
         }]);
-        
+
         $stats = [
             'missions_total' => $consultant->missions()->count(),
             'missions_encours' => $consultant->missions()->whereNull('date_fin')->count(),
@@ -101,7 +100,7 @@ class ConsultantController extends Controller
             'factures_montant_total' => $consultant->factures()->sum('montant'),
             'factures_montant_regle' => $consultant->factures()->whereNotNull('date_reglement')->sum('montant'),
         ];
-        
+
         return view('consultants.show', compact('consultant', 'stats'));
     }
 
@@ -110,8 +109,8 @@ class ConsultantController extends Controller
      */
     public function edit(Consultant $consultant)
     {
-        $modesPaiement = \App\Enums\ModePaiement::cases();
-        
+        $modesPaiement = ModePaiement::cases();
+
         return view('consultants.edit', compact('consultant', 'modesPaiement'));
     }
 
@@ -122,22 +121,22 @@ class ConsultantController extends Controller
     {
         try {
             DB::beginTransaction();
-            
+
             $consultant->update($request->validated());
-            
+
             DB::commit();
-            
+
             return redirect()
                 ->route('consultants.index')
                 ->with('success', 'Consultant mis à jour avec succès.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Erreur lors de la mise à jour du consultant : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la mise à jour du consultant : '.$e->getMessage());
         }
     }
 
@@ -153,23 +152,23 @@ class ConsultantController extends Controller
                     ->back()
                     ->with('error', 'Impossible de supprimer ce consultant car il est lié à des missions.');
             }
-            
+
             DB::beginTransaction();
-            
+
             $consultant->delete();
-            
+
             DB::commit();
-            
+
             return redirect()
                 ->route('consultants.index')
                 ->with('success', 'Consultant supprimé avec succès.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()
                 ->back()
-                ->with('error', 'Erreur lors de la suppression du consultant : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la suppression du consultant : '.$e->getMessage());
         }
     }
 
@@ -179,9 +178,9 @@ class ConsultantController extends Controller
     public function export(Request $request)
     {
         $consultants = Consultant::query()
-            ->when($request->filled('search'), fn($q) => $q->recherche($request->search))
+            ->when($request->filled('search'), fn ($q) => $q->recherche($request->search))
             ->get();
-            
+
         // Logique d'export CSV/Excel à implémenter
         return response()->json($consultants);
     }
@@ -192,13 +191,13 @@ class ConsultantController extends Controller
     public function search(Request $request)
     {
         $query = $request->get('q', '');
-        
+
         $consultants = Consultant::actif()
-            ->when($query, fn($q) => $q->recherche($query))
+            ->when($query, fn ($q) => $q->recherche($query))
             ->orderBy('nom')
             ->limit(10)
-            ->get(['id', 'nom', 'email']);
-        
+            ->get(['id', 'nom', 'cin', 'fonction', 'email']);
+
         return response()->json($consultants);
     }
 }

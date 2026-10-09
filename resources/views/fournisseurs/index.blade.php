@@ -23,7 +23,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Recherche</label>
                     <input type="text" name="search" value="{{ request('search') }}" 
-                           placeholder="Email, ICE ou adresse..."
+                           placeholder="Email, ICE, IBAN ou adresse..."
                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                 </div>
                 
@@ -59,6 +59,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ICE</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IBAN</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Adresse</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Taux</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Statut</th>
@@ -77,6 +78,9 @@
                             </td>
                             <td class="px-6 py-4">
                                 <code class="text-sm bg-gray-100 px-2 py-1 rounded">{{ $fournisseur->ice }}</code>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-900">{{ $fournisseur->iban ?: '—' }}</div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm text-gray-900 max-w-xs truncate">{{ $fournisseur->adresse }}</div>
@@ -121,7 +125,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            <td colspan="8" class="px-6 py-4 text-center text-gray-500">
                                 Aucun fournisseur trouvé.
                                 <a href="{{ route('fournisseurs.create') }}" class="text-blue-600 hover:text-blue-900 ml-2">Créer un fournisseur</a>
                             </td>

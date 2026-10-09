@@ -1,12 +1,13 @@
 <?php
+
 // app/Models/Consultant.php
 
 namespace App\Models;
 
+use App\Enums\ModePaiement;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Enums\ModePaiement;
 
 class Consultant extends Model
 {
@@ -16,11 +17,13 @@ class Consultant extends Model
 
     protected $fillable = [
         'nom',
+        'cin',
+        'fonction',
         'email',
         'tel',
         'rib',
         'mode_paiement',
-        'statut'
+        'statut',
     ];
 
     protected $casts = [
@@ -28,12 +31,12 @@ class Consultant extends Model
         'mode_paiement' => ModePaiement::class,
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime'
+        'deleted_at' => 'datetime',
     ];
 
     protected $attributes = [
         'statut' => true,
-        'mode_paiement' => 'virement'
+        'mode_paiement' => 'virement',
     ];
 
     // Relations
@@ -50,7 +53,7 @@ class Consultant extends Model
     public function missionsActives()
     {
         return $this->missions()->whereNull('date_fin')
-                               ->orWhere('date_fin', '>=', now());
+            ->orWhere('date_fin', '>=', now());
     }
 
     // Accesseurs
@@ -71,7 +74,7 @@ class Consultant extends Model
 
     public function getStatutBadgeAttribute(): string
     {
-        return $this->statut 
+        return $this->statut
             ? '<span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-200 rounded-full">Actif</span>'
             : '<span class="px-2 py-1 text-xs font-semibold text-red-800 bg-red-200 rounded-full">Inactif</span>';
     }
@@ -101,7 +104,8 @@ class Consultant extends Model
     public function scopeRecherche($query, $terme)
     {
         return $query->where('nom', 'LIKE', "%{$terme}%")
-                     ->orWhere('email', 'LIKE', "%{$terme}%")
-                     ->orWhere('tel', 'LIKE', "%{$terme}%");
+            ->orWhere('cin', 'LIKE', "%{$terme}%")
+            ->orWhere('email', 'LIKE', "%{$terme}%")
+            ->orWhere('tel', 'LIKE', "%{$terme}%");
     }
 }

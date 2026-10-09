@@ -12,7 +12,7 @@
 @section('content')
     <div x-data="fournisseurForm()" x-init="init()" class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
         <div class="p-6">
-            <form method="POST" action="{{ route('fournisseurs.update', $fournisseur) }}" @submit.prevent="validateAndSubmit">
+            <form method="POST" action="{{ route('fournisseurs.update', $fournisseur) }}" enctype="multipart/form-data" @submit.prevent="validateAndSubmit">
                 @csrf
                 @method('PUT')
                 
@@ -28,8 +28,61 @@
                                :class="errors.nom ? 'border-red-500' : 'border-gray-300'"
                                placeholder="Nom de l'entreprise">
                         <p x-show="errors.nom" x-text="errors.nom" class="text-red-500 text-xs mt-1"></p>
+                    <!-- Signature -->
+                    <div>
+                        <label for="signature" class="block text-sm font-medium text-gray-700 mb-2">
+                            Signature (image)
+                        </label>
+                        @if($fournisseur->signature_url)
+                            <img src="{{ $fournisseur->signature_url }}" alt="Signature actuelle"
+                                 class="h-16 object-contain mb-2 bg-gray-50 rounded p-1">
+                        @endif
+                        <input type="file" name="signature" id="signature"
+                               accept="image/png,image/jpeg,image/webp"
+                               class="block w-full text-sm text-gray-600 border border-gray-300 rounded-md cursor-pointer focus:border-blue-300 focus:ring focus:ring-blue-200 @error('signature') border-red-500 @enderror">
+                        <p class="text-xs text-gray-500 mt-1">PNG, JPG ou WEBP — 2 Mo maximum. Laisser vide pour conserver l'actuel.</p>
+                        @error('signature')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
                     </div>
 
+                    <!-- Logo -->
+                    <div>
+                        <label for="logo" class="block text-sm font-medium text-gray-700 mb-2">
+                            Logo (image)
+                        </label>
+                        @if($fournisseur->logo_url)
+                            <img src="{{ $fournisseur->logo_url }}" alt="Logo actuel"
+                                 class="h-16 object-contain mb-2 bg-gray-50 rounded p-1">
+                        @endif
+                        <input type="file" name="logo" id="logo"
+                               accept="image/png,image/jpeg,image/webp"
+                               class="block w-full text-sm text-gray-600 border border-gray-300 rounded-md cursor-pointer focus:border-blue-300 focus:ring focus:ring-blue-200 @error('logo') border-red-500 @enderror">
+                        <p class="text-xs text-gray-500 mt-1">PNG, JPG ou WEBP — 2 Mo maximum. Laisser vide pour conserver l'actuel.</p>
+                        @error('logo')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="md:col-span-2">
+                        <label for="footer" class="block text-sm font-medium text-gray-700 mb-2">
+                            Footer <span class="text-gray-400 font-normal">(optionnel)</span>
+                        </label>
+                        <textarea name="footer" id="footer" rows="3" x-model="form.footer"
+                                  @input="validateFooter()"
+                                  maxlength="1000"
+                                  placeholder="Texte optionnel affiché en pied de page"
+                                  class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                                  :class="errors.footer ? 'border-red-500' : 'border-gray-300'"></textarea>
+                        <p x-show="errors.footer" x-text="errors.footer" class="text-red-500 text-xs mt-1"></p>
+                        <p x-show="!errors.footer" class="text-xs text-gray-500 mt-1">1000 caractères maximum.</p>
+                        @error('footer')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+                
                     <!-- Adresse -->
                     <div class="md:col-span-2">
                         <label for="adresse" class="block text-sm font-medium text-gray-700 mb-2">
@@ -121,6 +174,21 @@
                         <p x-show="errors.rib" x-text="errors.rib" class="text-red-500 text-xs mt-1"></p>
                     </div>
                     
+                    <!-- IBAN -->
+                    <div>
+                        <label for="iban" class="block text-sm font-medium text-gray-700 mb-2">
+                            IBAN
+                        </label>
+                        <input type="text" name="iban" id="iban" x-model="form.iban"
+                               @input="validateIban()"
+                               value="{{ old('iban', $fournisseur->iban) }}"
+                               class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                               :class="errors.iban ? 'border-red-500' : 'border-gray-300'"
+                               maxlength="20"
+                               placeholder="FR76000000000000">
+                        <p x-show="errors.iban" x-text="errors.iban" class="text-red-500 text-xs mt-1"></p>
+                    </div>
+                    
                     <!-- Statut -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -169,7 +237,9 @@
                     ville: '{{ old('ville', $fournisseur->ville) }}',
                     responsable: '{{ old('responsable', $fournisseur->responsable) }}',
                     rib: '{{ old('rib', $fournisseur->rib) }}',
-                    statut: '{{ old('statut', $fournisseur->statut ? '1' : '0') }}'
+                    iban: '{{ old('iban', $fournisseur->iban) }}',
+                    statut: '{{ old('statut', $fournisseur->statut ? '1' : '0') }}',
+                    footer: @js(old('footer', $fournisseur->footer))
                 },
                 errors: {},
                 isSubmitting: false,
@@ -272,6 +342,29 @@
                     }
                 },
                 
+                validateIban() {
+                    if (this.form.iban) {
+                        const ibanRegex = /^[A-Za-z0-9]+$/;
+                        if (!ibanRegex.test(this.form.iban)) {
+                            this.errors.iban = 'L\'IBAN ne doit contenir que des lettres et des chiffres.';
+                        } else if (this.form.iban.length > 20) {
+                            this.errors.iban = 'L\'IBAN ne doit pas dépasser 20 caractères.';
+                        } else {
+                            delete this.errors.iban;
+                        }
+                    } else {
+                        delete this.errors.iban;
+                    }
+                },
+                
+                validateFooter() {
+                    if (this.form.footer && this.form.footer.length > 1000) {
+                        this.errors.footer = 'Le footer ne doit pas dépasser 1000 caractères.';
+                    } else {
+                        delete this.errors.footer;
+                    }
+                },
+                
                 validateAll() {
                     this.validateNom();
                     this.validateAdresse();
@@ -281,6 +374,8 @@
                     this.validateVille();
                     this.validateResponsable();
                     this.validateRib();
+                    this.validateIban();
+                    this.validateFooter();
                 },
                 
                 get isFormValid() {
