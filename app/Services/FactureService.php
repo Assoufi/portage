@@ -8,6 +8,17 @@ use Illuminate\Support\Facades\DB;
 
 class FactureService
 {
+    private function prepareDetail(array $detail, Facture $facture): array
+    {
+        $montantHt             = (float) ($detail['quantite'] ?? 1) * (float) ($detail['prix_unitaire'] ?? 0);
+        $montantTva            = $montantHt * (float) ($facture->taux_tva ?? 20) / 100;
+        $detail['montant_ht']  = $montantHt;
+        $detail['montant_tva'] = $montantTva;
+        $detail['montant_ttc'] = $montantHt + $montantTva;
+
+        return $detail;
+    }
+
     public function createFacture(array $data): Facture
     {
         return DB::transaction(function () use ($data) {
@@ -21,7 +32,7 @@ class FactureService
             if (!empty($data['details'])) {
                 foreach ($data['details'] as $detail) {
                     $detail['facture_id'] = $facture->id;
-                    DetailFacture::create($detail);
+                    DetailFacture::create($this->prepareDetail($detail, $facture));
                 }
 
                 $facture->load('details');
@@ -43,7 +54,7 @@ class FactureService
 
                 foreach ($data['details'] as $detail) {
                     $detail['facture_id'] = $facture->id;
-                    DetailFacture::create($detail);
+                    DetailFacture::create($this->prepareDetail($detail, $facture->fresh(['client'])));
                 }
 
                 $facture->load('details');
@@ -103,12 +114,12 @@ class FactureService
     public function getStats(): array
     {
         $totalFactures     = Facture::count();
-        $montantTotal      = Facture::sum('montant');
+        $montantTotal      = Facture::sum('montant_ttc');
         $montantTotalHt    = Facture::sum('total_ht');
         $facturesReglees   = Facture::reglee()->count();
-        $montantRegle      = Facture::reglee()->sum('montant');
+        $montantRegle      = Facture::reglee()->sum('montant_ttc');
         $facturesEnAttente = Facture::nonReglee()->actif()->count();
-        $montantEnAttente  = Facture::nonReglee()->actif()->sum('montant');
+        $montantEnAttente  = Facture::nonReglee()->actif()->sum('montant_ttc');
         $facturesEnRetard  = Facture::nonReglee()
             ->actif()
             ->where('date_echeance', '<', now())
@@ -116,7 +127,7 @@ class FactureService
         $montantEnRetard   = Facture::nonReglee()
             ->actif()
             ->where('date_echeance', '<', now())
-            ->sum('montant');
+            ->sum('montant_ttc');
 
         return compact(
             'totalFactures',

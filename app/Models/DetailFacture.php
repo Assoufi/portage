@@ -14,6 +14,9 @@ class DetailFacture extends Model
         'designation',
         'quantite',
         'prix_unitaire',
+        'montant_ht',
+        'montant_tva',
+        'montant_ttc',
     ];
 
     protected $casts = [
@@ -45,30 +48,30 @@ class DetailFacture extends Model
         return number_format($this->prix_unitaire ?? 0, 2, ',', ' ');
     }
 
-    public function getTotalHtAttribute(): float
+    public function getMontantHtAttribute(): float
     {
         return ($this->quantite ?? 1) * ($this->prix_unitaire ?? 0);
     }
 
-    public function getTotalHtFormateAttribute(): string
+    public function getMontantHtFormateAttribute(): string
     {
-        return number_format($this->total_ht ?? 0, 2, ',', ' ');
+        return number_format($this->montant_ht ?? 0, 2, ',', ' ');
     }
 
-    public function getTvaAttribute(): float
+    public function getMontantTvaAttribute(): float
     {
         $tvaRate = $this->facture?->client?->tva ?? 20;
-        return $this->total_ht * $tvaRate / 100;
+        return $this->montant_ht * $tvaRate / 100;
     }
 
-    public function getTvaFormateAttribute(): string
+    public function getMontantTvaFormateAttribute(): string
     {
-        return number_format($this->tva ?? 0, 2, ',', ' ');
+        return number_format($this->montant_tva ?? 0, 2, ',', ' ');
     }
 
     public function getMontantTtcAttribute(): float
     {
-        return $this->total_ht + $this->tva;
+        return $this->montant_ht + $this->montant_tva;
     }
 
     public function getMontantTtcFormateAttribute(): string

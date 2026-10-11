@@ -123,7 +123,7 @@
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantité</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Prix unitaire HT</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total HT</th>
-                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">TVA ({{ $facture->tva }}%)</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">TVA ({{ $facture->taux_tva }}%)</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant TTC</th>
                                 </tr>
                             </thead>
@@ -135,8 +135,8 @@
                                         </td>
                                         <td class="px-4 py-3 text-right text-sm">{{ $detail->quantite }}</td>
                                         <td class="px-4 py-3 text-right text-sm">{{ $detail->prix_unitaire_formate }}</td>
-                                        <td class="px-4 py-3 text-right text-sm">{{ $detail->total_ht_formate }}</td>
-                                        <td class="px-4 py-3 text-right text-sm">{{ $detail->tva_formate }}</td>
+                                        <td class="px-4 py-3 text-right text-sm">{{ $detail->montant_ht_formate }}</td>
+                                        <td class="px-4 py-3 text-right text-sm">{{ $detail->montant_tva_formate }}</td>
                                         <td class="px-4 py-3 text-right text-sm font-medium">{{ $detail->montant_ttc_formate }}</td>
                                     </tr>
                                 @endforeach
@@ -145,8 +145,8 @@
                                 <tr>
                                     <td colspan="3" class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Total HT</td>
                                     <td class="px-4 py-3 text-right text-sm font-bold text-gray-900">{{ $facture->total_ht_formate }}</td>
-                                    <td class="px-4 py-3 text-right text-sm font-bold text-gray-900">{{ number_format($facture->details->sum('tva'), 2, ',', ' ') }}</td>
-                                    <td class="px-4 py-3 text-right text-sm font-bold text-gray-900">{{ $facture->montant_formate }}</td>
+                                    <td class="px-4 py-3 text-right text-sm font-bold text-gray-900">{{ number_format($facture->details->sum('montant_tva'), 2, ',', ' ') }}</td>
+                                    <td class="px-4 py-3 text-right text-sm font-bold text-gray-900">{{ $facture->montant_ttc_formate }}</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -200,8 +200,8 @@
                         </div>
 
                         <div class="flex justify-between items-center">
-                            <span class="text-gray-600">TVA ({{ $facture->tva }}%):</span>
-                            <span class="font-medium">{{ number_format($facture->montant - $facture->total_ht, 2, ',', ' ') }}</span>
+                            <span class="text-gray-600">TVA ({{ $facture->taux_tva }}%):</span>
+                            <span class="font-medium">{{ number_format($facture->montant_ttc - $facture->total_ht, 2, ',', ' ') }}</span>
                         </div>
 
                         <div class="border-t pt-2"></div>
@@ -209,7 +209,7 @@
 
                         <div class="flex justify-between items-center">
                             <span class="text-gray-600 font-semibold">Montant TTC:</span>
-                            <span class="font-bold text-xl">{{ $facture->montant_formate }}</span>
+                            <span class="font-bold text-xl">{{ $facture->montant_ttc_formate }}</span>
                         </div>
 
                         @if($facture->is_reglee)

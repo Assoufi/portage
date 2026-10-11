@@ -84,8 +84,8 @@ class ClientController extends Controller
             'factures_total' => $client->factures()->count(),
             'factures_reglees' => $client->factures()->whereNotNull('date_reglement')->count(),
             'factures_impayees' => $client->factures()->whereNull('date_reglement')->count(),
-            'factures_montant_total' => $client->factures()->sum('montant'),
-            'factures_montant_regle' => $client->factures()->whereNotNull('date_reglement')->sum('montant'),
+            'factures_montant_total' => $client->factures()->sum('montant_ttc'),
+            'factures_montant_regle' => $client->factures()->whereNotNull('date_reglement')->sum('montant_ttc'),
         ];
 
         $missionsParAnnee = $client->missions()
@@ -95,7 +95,7 @@ class ClientController extends Controller
             ->get();
 
         $facturesParAnnee = $client->factures()
-            ->selectRaw('YEAR(date_facture) as annee, COUNT(*) as nb_factures, SUM(montant) as montant_total')
+            ->selectRaw('YEAR(date_facture) as annee, COUNT(*) as nb_factures, SUM(montant_ttc) as montant_total')
             ->groupByRaw('YEAR(date_facture)')
             ->orderBy('annee')
             ->get();

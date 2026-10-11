@@ -97,8 +97,8 @@ class ConsultantController extends Controller
             'factures_total' => $consultant->factures()->count(),
             'factures_reglees' => $consultant->factures()->whereNotNull('date_reglement')->count(),
             'factures_impayees' => $consultant->factures()->whereNull('date_reglement')->count(),
-            'factures_montant_total' => $consultant->factures()->sum('montant'),
-            'factures_montant_regle' => $consultant->factures()->whereNotNull('date_reglement')->sum('montant'),
+            'factures_montant_total' => $consultant->factures()->sum('montant_ttc'),
+            'factures_montant_regle' => $consultant->factures()->whereNotNull('date_reglement')->sum('montant_ttc'),
         ];
 
         return view('consultants.show', compact('consultant', 'stats'));

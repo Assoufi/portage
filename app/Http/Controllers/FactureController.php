@@ -6,6 +6,7 @@ use App\Models\Facture;
 use App\Models\Client;
 use App\Models\Fournisseur;
 use App\Models\Consultant;
+use App\Models\Mission;
 use App\Http\Requests\FactureRequest;
 use App\Services\FactureService;
 use Illuminate\Http\Request;
@@ -30,6 +31,28 @@ class FactureController extends Controller
 
         if ($request->filled('consultant_id')) {
             $query->parConsultant($request->consultant_id);
+        }
+
+        if ($request->filled('numero_facture')) {
+            $query->where('numero_facture', 'LIKE', '%' . $request->numero_facture . '%');
+        }
+
+        if ($request->filled('facture_reglee')) {
+            if ($request->facture_reglee === 'oui') {
+                $query->whereNotNull('mode_reglement')
+                    ->where('mode_reglement', '<>', '');
+            } elseif ($request->facture_reglee === 'non') {
+                $query->where(function ($q) {
+                    $q->whereNull('mode_reglement')
+                        ->orWhere('mode_reglement', '');
+                });
+            }
+        }
+
+        if ($request->filled('periode')) {
+            $debut = $request->periode . '-01';
+            $fin   = date('Y-m-t', strtotime($debut));
+            $query->whereBetween('periode', [$debut, $fin]);
         }
 
         if ($request->filled('statut')) {
@@ -69,6 +92,7 @@ class FactureController extends Controller
         $clients     = Client::actif()->orderBy('nom')->get();
         $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
         $consultants  = Consultant::actif()->orderBy('nom')->get();
+        $missions     = Mission::orderBy('date_debut', 'desc')->get();
 
         $clone = null;
         $cloneDetails = collect();
@@ -78,6 +102,7 @@ class FactureController extends Controller
 
             if ($source) {
                 $clone = [
+                    'mission_id'     => $source->mission_id,
                     'fournisseur_id' => $source->fournisseur_id,
                     'client_id'      => $source->client_id,
                     'consultant_id'  => $source->consultant_id,
@@ -85,9 +110,10 @@ class FactureController extends Controller
                     'date_facture'   => $source->date_facture?->format('Y-m-d'),
                     'date_echeance'  => $source->date_echeance?->format('Y-m-d'),
                     'date_reception' => $source->date_reception?->format('Y-m-d'),
+                    'periode'        => $source->periode?->format('Y-m'),
                     'beneficiaire'   => $source->beneficiaire,
                     'remarques'      => $source->remarques,
-                    'tva'            => $source->tva,
+                    'taux_tva'       => $source->taux_tva,
                 ];
 
                 $cloneDetails = $source->details->map(fn ($d) => [
@@ -103,7 +129,7 @@ class FactureController extends Controller
         $fournisseurId = (int) ($request->input('fournisseur_id') ?? $clone['fournisseur_id'] ?? 0);
         $numero = Facture::genererNumeroFacturePourFournisseur($fournisseurId ?: null);
 
-        return view('factures.create', compact('facture', 'clients', 'fournisseurs', 'consultants', 'numero', 'clone', 'cloneDetails'));
+        return view('factures.create', compact('facture', 'clients', 'fournisseurs', 'consultants', 'missions', 'numero', 'clone', 'cloneDetails'));
     }
 
     /**
@@ -147,15 +173,16 @@ class FactureController extends Controller
         $clients      = Client::actif()->orderBy('nom')->get();
         $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
         $consultants  = Consultant::actif()->orderBy('nom')->get();
+        $missions     = Mission::orderBy('date_debut', 'desc')->get();
 
         $detailsJson = $facture->details->map(fn($d) => [
             'designation'  => $d->designation,
             'quantite'     => $d->quantite,
             'prix_unitaire' => $d->prix_unitaire,
-            'total_ht'     => $d->total_ht,
+            'montant_ht'   => $d->montant_ht,
         ])->values()->toJson();
 
-        return view('factures.edit', compact('facture', 'clients', 'fournisseurs', 'consultants', 'detailsJson'));
+        return view('factures.edit', compact('facture', 'clients', 'fournisseurs', 'consultants', 'missions', 'detailsJson'));
     }
 
     public function update(FactureRequest $request, Facture $facture)
@@ -220,6 +247,7 @@ class FactureController extends Controller
         return response()->json([
             'success' => true,
             'facture' => [
+                'mission_id' => $facture->mission_id,
                 'fournisseur_id' => $facture->fournisseur_id,
                 'client_id' => $facture->client_id,
                 'consultant_id' => $facture->consultant_id,
@@ -227,9 +255,10 @@ class FactureController extends Controller
                 'date_facture' => $facture->date_facture->format('Y-m-d'),
                 'date_echeance' => $facture->date_echeance?->format('Y-m-d'),
                 'date_reception' => $facture->date_reception?->format('Y-m-d'),
+                'periode' => $facture->periode?->format('Y-m'),
                 'beneficiaire' => $facture->beneficiaire,
                 'remarques' => $facture->remarques,
-                'tva' => $facture->tva,
+                'taux_tva' => $facture->taux_tva,
             ],
             'details' => $facture->details->map(function ($detail) {
                 return [

@@ -24,8 +24,8 @@ class Facture extends Model
         'numero_bcm',
         'date_facture',
         'total_ht',
-        'tva',
-        'montant',
+        'taux_tva',
+        'montant_ttc',
         'date_paiement',
         'mode_paiement',
         'reference_paiement',
@@ -47,15 +47,15 @@ class Facture extends Model
         'date_reception'      => 'date:Y-m-d',
         'date_reglement'      => 'date:Y-m-d',
         'periode'             => 'date:Y-m-d',
-        'montant'             => 'float',
+        'montant_ttc'         => 'float',
         'total_ht'            => 'float',
-        'tva'                 => 'float',
+        'taux_tva'            => 'float',
         'statut'              => 'boolean',
     ];
 
     protected $attributes = [
-        'statut' => true,
-        'tva'    => 20.00,
+        'statut'   => true,
+        'taux_tva' => 20.00,
     ];
 
     public function details(): HasMany
@@ -86,14 +86,14 @@ class Facture extends Model
     public function calculateTotals(): void
     {
         $this->loadMissing('details');
-        $totalHt = $this->details->sum('total_ht');
+        $totalHt = $this->details->sum('montant_ht');
         $tvaRate = $this->client?->tva ?? 20;
         $tva = $totalHt * $tvaRate / 100;
         $montant = $totalHt + $tva;
 
-        $this->total_ht = $totalHt;
-        $this->tva = $tvaRate;
-        $this->montant = $montant;
+        $this->total_ht    = $totalHt;
+        $this->taux_tva    = $tvaRate;
+        $this->montant_ttc = $montant;
     }
 
     public function getIsRegleeAttribute(): bool
@@ -101,9 +101,9 @@ class Facture extends Model
         return ! is_null($this->date_reglement);
     }
 
-    public function getMontantFormateAttribute(): string
+    public function getMontantTtcFormateAttribute(): string
     {
-        return number_format($this->montant ?? 0, 2, ',', ' ');
+        return number_format($this->montant_ttc ?? 0, 2, ',', ' ');
     }
 
     public function getTotalHtFormateAttribute(): string
@@ -163,9 +163,9 @@ class Facture extends Model
         $this->attributes['remarques'] = $value ? trim($value) : null;
     }
 
-    public function setMontantAttribute($value): void
+    public function setMontantTtcAttribute($value): void
     {
-        $this->attributes['montant'] = ($value === '' || $value === null) ? 0 : $value;
+        $this->attributes['montant_ttc'] = ($value === '' || $value === null) ? 0 : $value;
     }
 
     public function setTotalHtAttribute($value): void
@@ -173,9 +173,9 @@ class Facture extends Model
         $this->attributes['total_ht'] = ($value === '' || $value === null) ? null : $value;
     }
 
-    public function setTvaAttribute($value): void
+    public function setTauxTvaAttribute($value): void
     {
-        $this->attributes['tva'] = ($value === '' || $value === null) ? 20 : $value;
+        $this->attributes['taux_tva'] = ($value === '' || $value === null) ? 20 : $value;
     }
 
     public static function genererNumeroFacture(): string

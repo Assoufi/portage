@@ -84,8 +84,8 @@ class FournisseurController extends Controller
             'factures_total' => $fournisseur->factures()->count(),
             'factures_reglees' => $fournisseur->factures()->whereNotNull('date_reglement')->count(),
             'factures_impayees' => $fournisseur->factures()->whereNull('date_reglement')->count(),
-            'factures_montant_total' => $fournisseur->factures()->sum('montant'),
-            'factures_montant_regle' => $fournisseur->factures()->whereNotNull('date_reglement')->sum('montant'),
+            'factures_montant_total' => $fournisseur->factures()->sum('montant_ttc'),
+            'factures_montant_regle' => $fournisseur->factures()->whereNotNull('date_reglement')->sum('montant_ttc'),
         ];
 
         $missionsParAnnee = $fournisseur->missions()
@@ -95,7 +95,7 @@ class FournisseurController extends Controller
             ->get();
 
         $facturesParAnnee = $fournisseur->factures()
-            ->selectRaw('YEAR(date_facture) as annee, COUNT(*) as nb_factures, SUM(montant) as montant_total')
+            ->selectRaw('YEAR(date_facture) as annee, COUNT(*) as nb_factures, SUM(montant_ttc) as montant_total')
             ->groupByRaw('YEAR(date_facture)')
             ->orderBy('annee')
             ->get();

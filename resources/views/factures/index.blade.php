@@ -36,7 +36,29 @@
 
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
         <div class="p-6">
-            <form method="GET" action="{{ route('factures.index') }}" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+            <form method="GET" action="{{ route('factures.index') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Numéro de facture</label>
+                    <input type="text" name="numero_facture" value="{{ request('numero_facture') }}"
+                           placeholder="FACT-2024-00001…"
+                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Facture réglée</label>
+                    <select name="facture_reglee" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                        <option value="">Tous</option>
+                        <option value="oui" {{ request('facture_reglee') == 'oui' ? 'selected' : '' }}>Oui</option>
+                        <option value="non" {{ request('facture_reglee') == 'non' ? 'selected' : '' }}>Non</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Période</label>
+                    <input type="month" name="periode" value="{{ request('periode') }}"
+                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                </div>
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Client</label>
                     <select name="client_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
@@ -96,11 +118,11 @@
                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                 </div>
 
-                <div class="flex items-end space-x-2">
+                <div class="md:col-span-3 flex items-end space-x-2">
                     <button type="submit" class="flex-1 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Filtrer
                     </button>
-                    @if(request()->anyFilled(['client_id', 'fournisseur_id', 'consultant_id', 'statut', 'date_debut', 'date_fin', 'recherche']))
+                    @if(request()->anyFilled(['numero_facture', 'facture_reglee', 'periode', 'client_id', 'fournisseur_id', 'consultant_id', 'statut', 'date_debut', 'date_fin', 'recherche']))
                         <a href="{{ route('factures.index') }}" class="flex-1 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-center transition duration-300">
                             Réinitialiser
                         </a>
@@ -157,7 +179,7 @@
                             </td>
                             {{-- Montant TTC + HT regroupés --}}
                             <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <div class="text-sm font-medium text-gray-900">{{ $facture->montant_formate }}</div>
+                                <div class="text-sm font-medium text-gray-900">{{ $facture->montant_ttc_formate }}</div>
                                 <div class="text-sm text-gray-500">HT: {{ $facture->total_ht_formate }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">

@@ -32,6 +32,10 @@ class FactureRequest extends FormRequest
                 'exists:consultants,id',
                 Rule::exists('consultants', 'id')->where('statut', true),
             ],
+            'mission_id' => [
+                'nullable',
+                'exists:missions,id',
+            ],
             'numero_facture' => [
                 'required',
                 'string',
@@ -69,13 +73,13 @@ class FactureRequest extends FormRequest
                 'min:0',
                 'regex:/^\d+(\.\d{1,2})?$/',
             ],
-            'tva' => [
+            'taux_tva' => [
                 'nullable',
                 'numeric',
                 'min:0',
                 'max:100',
             ],
-            'montant' => [
+            'montant_ttc' => [
                 'required',
                 'numeric',
                 'min:0.01',
@@ -88,6 +92,10 @@ class FactureRequest extends FormRequest
                 'after_or_equal:date_facture',
             ],
             'date_reception' => [
+                'nullable',
+                'date',
+            ],
+            'periode' => [
                 'nullable',
                 'date',
             ],
@@ -167,10 +175,10 @@ class FactureRequest extends FormRequest
             'numero_facture.max'        => 'Le numéro de facture ne doit pas dépasser 50 caractères.',
             'date_facture.required'     => 'La date de facture est obligatoire.',
             'date_facture.date'         => 'La date de facture doit être une date valide.',
-            'montant.required'          => 'Le montant est obligatoire.',
-            'montant.numeric'           => 'Le montant doit être un nombre.',
-            'montant.min'               => 'Le montant doit être supérieur à 0.',
-            'montant.max'               => 'Le montant ne peut pas dépasser 99 999 999.99.',
+            'montant_ttc.required' => 'Le montant est obligatoire.',
+            'montant_ttc.numeric'  => 'Le montant doit être un nombre.',
+            'montant_ttc.min'      => 'Le montant doit être supérieur à 0.',
+            'montant_ttc.max'      => 'Le montant ne peut pas dépasser 99 999 999.99.',
             'date_echeance.after_or_equal' => 'La date d\'échéance doit être postérieure ou égale à la date de facture.',
             'remarques.max'             => 'Les remarques ne doivent pas dépasser 5000 caractères.',
             'details.*.designation.required' => 'La désignation de chaque ligne est obligatoire.',
@@ -184,10 +192,10 @@ class FactureRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'montant'       => floatval($this->montant),
+            'montant_ttc'   => floatval($this->montant_ttc),
             'total_ht'      => $this->total_ht ? floatval($this->total_ht) : null,
             'prix_unitaire' => $this->prix_unitaire ? floatval($this->prix_unitaire) : null,
-            'tva'           => $this->tva ? floatval($this->tva) : null,
+            'taux_tva'      => $this->taux_tva ? floatval($this->taux_tva) : null,
             'quantite'      => $this->quantite ? intval($this->quantite) : null,
         ]);
     }
