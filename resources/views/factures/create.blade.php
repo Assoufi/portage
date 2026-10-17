@@ -307,6 +307,10 @@
                             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Créer la facture
                     </button>
+                    <button type="submit" name="action" value="print"
+                            class="bg-gray-600 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Enregistrer et imprimer
+                    </button>
                 </div>
             </form>
         </div>

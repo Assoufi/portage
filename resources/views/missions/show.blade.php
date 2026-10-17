@@ -9,6 +9,10 @@
             {{ $mission->titre ?: 'Mission #' . $mission->id }}
         </h2>
         <div class="space-x-2">
+            <a href="{{ route('missions.dupliquer', $mission) }}" 
+               class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                Dupliquer
+            </a>
             <a href="{{ route('missions.edit', $mission) }}" 
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Modifier

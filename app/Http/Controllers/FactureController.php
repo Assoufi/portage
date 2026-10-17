@@ -9,6 +9,7 @@ use App\Models\Consultant;
 use App\Models\Mission;
 use App\Http\Requests\FactureRequest;
 use App\Services\FactureService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class FactureController extends Controller
@@ -150,6 +151,10 @@ class FactureController extends Controller
         try {
             $facture = $this->factureService->createFacture($request->validated());
 
+            if ($request->input('action') === 'print') {
+                return redirect()->route('factures.pdf', $facture);
+            }
+
             return redirect()
                 ->route('factures.show', $facture)
                 ->with('success', 'Facture créée avec succès.');
@@ -166,6 +171,18 @@ class FactureController extends Controller
         $facture->load(['client', 'fournisseur', 'consultant', 'details']);
 
         return view('factures.show', compact('facture'));
+    }
+
+    public function pdf(Facture $facture)
+    {
+        $facture->load(['client', 'fournisseur', 'consultant', 'details']);
+
+        $fournisseur = $facture->fournisseur;
+
+        $pdf = Pdf::loadView('factures.pdf', compact('facture', 'fournisseur'))
+            ->setPaper('a4');
+
+        return $pdf->stream('facture-'.$facture->numero_facture.'.pdf');
     }
 
     public function edit(Facture $facture)

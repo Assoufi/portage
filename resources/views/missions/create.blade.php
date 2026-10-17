@@ -12,6 +12,21 @@
 @section('content')
     <div x-data="missionForm()" x-init="init()" class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
         <div class="p-6">
+            @if($clone)
+                <div class="mb-6 bg-purple-50 border border-purple-200 text-purple-800 text-sm py-3 px-4 rounded-lg flex items-center justify-between">
+                    <span>
+                        Duplication de la mission
+                        <strong>#{{ request('clone') }}</strong>
+                        @if(isset($clone['titre']) && $clone['titre'])
+                            — {{ $clone['titre'] }}
+                        @endif
+                        . Vérifiez les informations avant de créer la nouvelle mission.
+                    </span>
+                    <a href="{{ route('missions.index') }}" class="text-purple-600 hover:text-purple-800 underline ml-4 whitespace-nowrap">
+                        Annuler
+                    </a>
+                </div>
+            @endif
             <form method="POST" action="{{ route('missions.store') }}" @submit.prevent="validateAndSubmit">
                 @csrf
                 
@@ -219,18 +234,18 @@
         function missionForm() {
             return {
                 form: {
-                    consultant_id: '{{ old('consultant_id', '') }}',
-                    client_id: '{{ old('client_id', '') }}',
-                    fournisseur_id: '{{ old('fournisseur_id', '') }}',
-                    titre: '{{ old('titre', '') }}',
-                    formule: '{{ old('formule', '') }}',
-                    taux: '{{ old('taux', '') }}',
-                    tjm: '{{ old('tjm', '') }}',
-                    prix_vente: '{{ old('prix_vente', '') }}',
-                    date_debut: '{{ old('date_debut', '') }}',
-                    date_fin: '{{ old('date_fin', '') }}',
-                    delai_paiement: '{{ old('delai_paiement', 30) }}',
-                    remarques: '{{ old('remarques', '') }}'
+                    consultant_id: '{{ old('consultant_id', $clone['consultant_id'] ?? '') }}',
+                    client_id: '{{ old('client_id', $clone['client_id'] ?? '') }}',
+                    fournisseur_id: '{{ old('fournisseur_id', $clone['fournisseur_id'] ?? '') }}',
+                    titre: '{{ old('titre', $clone['titre'] ?? '') }}',
+                    formule: '{{ old('formule', $clone['formule'] ?? '') }}',
+                    taux: '{{ old('taux', $clone['taux'] ?? '') }}',
+                    tjm: '{{ old('tjm', $clone['tjm'] ?? '') }}',
+                    prix_vente: '{{ old('prix_vente', $clone['prix_vente'] ?? '') }}',
+                    date_debut: '{{ old('date_debut', $clone['date_debut'] ?? '') }}',
+                    date_fin: '{{ old('date_fin', $clone['date_fin'] ?? '') }}',
+                    delai_paiement: '{{ old('delai_paiement', $clone['delai_paiement'] ?? 30) }}',
+                    remarques: '{{ old('remarques', $clone['remarques'] ?? '') }}'
                 },
                 errors: {},
                 margeInfo: {

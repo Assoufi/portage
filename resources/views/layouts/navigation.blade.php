@@ -16,31 +16,29 @@
                         Dashboard
                     </x-nav-link>
                     
-                    <!-- Menu Missions avec sous-menu -->
-                    <div x-data="{ missionsOpen: false }" class="relative flex items-center"
-                         @click.outside="missionsOpen = false" @keydown.escape.stop="missionsOpen = false">
-                        <button @click="missionsOpen = !missionsOpen"
-                                class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none {{ request()->routeIs('missions.*') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                            <span>Missions</span>
-                            <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <div x-show="missionsOpen" x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95"
-                             class="absolute left-0 top-full z-50 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1"
-                             style="display: none;">
-                            <a href="{{ route('missions.index') }}"
-                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('missions.index') ? 'bg-gray-100' : '' }}">
-                                Gestion
-                            </a>
-                            <a href="{{ route('stats.prestations-non-declarees') }}"
-                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('stats.prestations-non-declarees') ? 'bg-gray-100' : '' }}">
-                                Missions en cours
-                            </a>
-                        </div>
+                    <!-- Menu Missions (même modèle que le dropdown utilisateur) -->
+                    <div class="flex items-center">
+                        <x-dropdown align="left" width="w-56">
+                            <x-slot name="trigger">
+                                <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none {{ request()->routeIs('missions.*') || request()->routeIs('stats.prestations-non-declarees') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                    <span>Missions</span>
+                                    <svg class="fill-current h-4 w-4 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </x-slot>
+
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('missions.index')"
+                                                 class="{{ request()->routeIs('missions.index') ? 'bg-gray-100' : '' }}">
+                                    Gestion
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('stats.prestations-non-declarees')"
+                                                 class="{{ request()->routeIs('stats.prestations-non-declarees') ? 'bg-gray-100' : '' }}">
+                                    Missions en cours
+                                </x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
                     </div>
                     
                     <x-nav-link :href="route('consultants.index')" :active="request()->routeIs('consultants.*')">
@@ -55,43 +53,58 @@
                         Fournisseurs
                     </x-nav-link>
                     
-                    <x-nav-link :href="route('paiements.index')" :active="request()->routeIs('paiements.*')">
-                        Paiements
-                    </x-nav-link>
-                    
-                    <x-nav-link :href="route('repartitions.index')" :active="request()->routeIs('repartitions.*')">
-                        Répartitions
-                    </x-nav-link>
+                    <!-- Menu Comptabilité (même modèle que le dropdown utilisateur) -->
+                    <div class="flex items-center">
+                        <x-dropdown align="left" width="w-56">
+                            <x-slot name="trigger">
+                                <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none {{ request()->routeIs('paiements.*') || request()->routeIs('repartitions.*') || request()->routeIs('factures.*') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                    <span>Comptabilité</span>
+                                    <svg class="fill-current h-4 w-4 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </x-slot>
 
-                    <x-nav-link :href="route('factures.index')" :active="request()->routeIs('factures.*')">
-                        Factures
-                    </x-nav-link>
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('paiements.index')"
+                                                 class="{{ request()->routeIs('paiements.*') ? 'bg-gray-100' : '' }}">
+                                    Paiements
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('repartitions.index')"
+                                                 class="{{ request()->routeIs('repartitions.*') ? 'bg-gray-100' : '' }}">
+                                    Répartitions
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('factures.index')"
+                                                 class="{{ request()->routeIs('factures.*') ? 'bg-gray-100' : '' }}">
+                                    Factures
+                                </x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
+                    </div>
 
-                    <!-- Menu Documents avec sous-menu -->
-                    <div x-data="{ documentsOpen: false }" class="relative flex items-center"
-                         @click.outside="documentsOpen = false" @keydown.escape.stop="documentsOpen = false">
-                        <button @click="documentsOpen = !documentsOpen"
-                                class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none {{ request()->routeIs('attestations.*') || request()->routeIs('devis.*') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                            <span>Documents</span>
-                            <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <div x-show="documentsOpen" x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95"
-                             class="absolute left-0 top-full z-50 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1"
-                             style="display: none;">
-                            <a href="{{ route('attestations.index') }}"
-                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('attestations.*') ? 'bg-gray-100' : '' }}">
-                                Attestation de mission
-                            </a>
-                            <a href="{{ route('devis.index') }}"
-                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 {{ request()->routeIs('devis.*') ? 'bg-gray-100' : '' }}">
-                                Devis
-                            </a>
-                        </div>
+                    <!-- Menu Documents (même modèle que le dropdown utilisateur) -->
+                    <div class="flex items-center">
+                        <x-dropdown align="left" width="w-56">
+                            <x-slot name="trigger">
+                                <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none {{ request()->routeIs('attestations.*') || request()->routeIs('devis.*') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                    <span>Documents</span>
+                                    <svg class="fill-current h-4 w-4 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </x-slot>
+
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('attestations.index')"
+                                                 class="{{ request()->routeIs('attestations.*') ? 'bg-gray-100' : '' }}">
+                                    Attestation de mission
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('devis.index')"
+                                                 class="{{ request()->routeIs('devis.*') ? 'bg-gray-100' : '' }}">
+                                    Devis
+                                </x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
                     </div>
                 </div>
             </div>
@@ -171,16 +184,27 @@
             <x-responsive-nav-link :href="route('fournisseurs.index')" :active="request()->routeIs('fournisseurs.*')">
                 Fournisseurs
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('paiements.index')" :active="request()->routeIs('paiements.*')">
-                Paiements
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('repartitions.index')" :active="request()->routeIs('repartitions.*')">
-                Répartitions
-            </x-responsive-nav-link>
-
-            <x-responsive-nav-link :href="route('factures.index')" :active="request()->routeIs('factures.*')">
-                Factures
-            </x-responsive-nav-link>
+            <!-- Sous-menu Comptabilité responsive -->
+            <div x-data="{ comptabiliteOpen: false }" @click.outside="comptabiliteOpen = false" @keydown.escape.stop="comptabiliteOpen = false">
+                <button @click="comptabiliteOpen = !comptabiliteOpen"
+                        class="w-full flex items-center justify-between px-4 py-2 text-base font-medium {{ request()->routeIs('paiements.*') || request()->routeIs('repartitions.*') || request()->routeIs('factures.*') ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700' }} hover:bg-gray-100 focus:outline-none transition duration-150">
+                    <span>Comptabilité</span>
+                    <svg class="w-4 h-4 transition-transform" :class="{'rotate-180': comptabiliteOpen}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="comptabiliteOpen" x-transition class="pl-4" style="display: none;">
+                    <x-responsive-nav-link :href="route('paiements.index')" :active="request()->routeIs('paiements.*')">
+                        Paiements
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('repartitions.index')" :active="request()->routeIs('repartitions.*')">
+                        Répartitions
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('factures.index')" :active="request()->routeIs('factures.*')">
+                        Factures
+                    </x-responsive-nav-link>
+                </div>
+            </div>
 
             <!-- Sous-menu Documents responsive -->
             <div x-data="{ documentsOpen: false }" @click.outside="documentsOpen = false" @keydown.escape.stop="documentsOpen = false">

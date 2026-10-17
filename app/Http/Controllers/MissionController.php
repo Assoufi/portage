@@ -76,14 +76,34 @@ class MissionController extends Controller
         return view('missions.index', compact('missions', 'consultants', 'clients', 'fournisseurs'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $mission = new Mission();
+        $clone = null;
+
+        if ($request->filled('clone')) {
+            $missionSource = Mission::find($request->integer('clone'));
+
+            if ($missionSource) {
+                $clone = $missionSource->only([
+                    'consultant_id', 'client_id', 'fournisseur_id', 'titre',
+                    'formule', 'taux', 'tjm', 'prix_vente', 'delai_paiement', 'remarques',
+                ]);
+                $clone['date_debut'] = $missionSource->date_debut->format('Y-m-d');
+                $clone['date_fin'] = $missionSource->date_fin?->format('Y-m-d');
+            }
+        }
+
         $consultants = Consultant::actif()->orderBy('nom')->get();
         $clients = Client::actif()->orderBy('nom')->get();
         $fournisseurs = Fournisseur::orderBy('nom')->get();
 
-        return view('missions.create', compact('mission', 'consultants', 'clients', 'fournisseurs'));
+        return view('missions.create', compact('mission', 'consultants', 'clients', 'fournisseurs', 'clone'));
+    }
+
+    public function dupliquer(Mission $mission)
+    {
+        return redirect()->route('missions.create', ['clone' => $mission->id]);
     }
 
     public function store(MissionRequest $request)

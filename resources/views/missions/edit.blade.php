@@ -203,6 +203,10 @@
                 </div>
                 
                 <div class="mt-6 flex justify-end space-x-3">
+                    <a href="{{ route('missions.dupliquer', $mission) }}" 
+                       class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Dupliquer
+                    </a>
                     <a href="{{ route('missions.index') }}" 
                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Annuler

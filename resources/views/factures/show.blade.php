@@ -8,6 +8,10 @@
             Facture {{ $facture->numero_facture }}
         </h2>
 <div class="space-x-2">
+            <a href="{{ route('factures.pdf', $facture) }}" target="_blank"
+               class="bg-gray-600 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                Imprimer
+            </a>
             <a href="{{ route('factures.edit', $facture) }}"
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Modifier

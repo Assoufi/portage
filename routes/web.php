@@ -49,6 +49,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('missions.calculate-prix-vente');
     Route::get('missions/dashboard', [MissionController::class, 'dashboard'])
         ->name('missions.dashboard');
+    Route::get('missions/{mission}/dupliquer', [MissionController::class, 'dupliquer'])
+        ->name('missions.dupliquer');
 
     // Routes pour les Paiements
     Route::post('paiements/importer', [PaiementController::class, 'importer'])
@@ -61,6 +63,8 @@ Route::middleware(['auth'])->group(function () {
     // Routes pour les Factures
     Route::get('factures/numero-suivant', [FactureController::class, 'numeroSuivant'])
         ->name('factures.numero-suivant');
+    Route::get('factures/{facture}/pdf', [FactureController::class, 'pdf'])
+        ->name('factures.pdf');
     Route::post('factures/{facture}/marquer-reglee', [FactureController::class, 'marquerReglee'])
         ->name('factures.marquer-reglee');
     Route::get('factures/{facture}/cloner', [FactureController::class, 'cloner'])
