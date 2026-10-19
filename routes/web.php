@@ -63,6 +63,8 @@ Route::middleware(['auth'])->group(function () {
     // Routes pour les Factures
     Route::get('factures/numero-suivant', [FactureController::class, 'numeroSuivant'])
         ->name('factures.numero-suivant');
+    Route::get('factures/export', [FactureController::class, 'export'])
+        ->name('factures.export');
     Route::get('factures/{facture}/pdf', [FactureController::class, 'pdf'])
         ->name('factures.pdf');
     Route::post('factures/{facture}/marquer-reglee', [FactureController::class, 'marquerReglee'])

@@ -8,9 +8,11 @@ use App\Models\Fournisseur;
 use App\Models\Consultant;
 use App\Models\Mission;
 use App\Http\Requests\FactureRequest;
+use App\Exports\FacturesExport;
 use App\Services\FactureService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class FactureController extends Controller
 {
@@ -20,8 +22,28 @@ class FactureController extends Controller
 
     public function index(Request $request)
     {
-        $query = Facture::with(['client', 'fournisseur', 'consultant']);
+        $query = $this->buildIndexQuery($request);
 
+        $factures    = $query->paginate(15)->withQueryString();
+        $clientSelectionne = $request->filled('client_id')
+            ? Client::find($request->client_id)
+            : null;
+        $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
+        $consultantSelectionne = $request->filled('consultant_id')
+            ? Consultant::find($request->consultant_id)
+            : null;
+        $stats       = $this->factureService->getStats();
+
+        return view('factures.index', compact('factures', 'clientSelectionne', 'fournisseurs', 'consultantSelectionne', 'stats'));
+    }
+
+    /**
+     * Construction de la requête de liste des factures,
+     * partagée entre l'affichage (index) et l'export Excel.
+     */
+    private function buildIndexQuery(Request $request): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = Facture::query();
         if ($request->filled('client_id')) {
             $query->parClient($request->client_id);
         }
@@ -66,8 +88,16 @@ class FactureController extends Controller
             };
         }
 
-        if ($request->filled('date_debut') && $request->filled('date_fin')) {
-            $query->parPeriode($request->date_debut, $request->date_fin);
+        if ($request->filled('date_debut')) {
+            $query->where('date_facture', '>=', $request->date_debut);
+        }
+
+        if ($request->filled('date_fin')) {
+            $query->where('date_facture', '<=', $request->date_fin);
+        }
+
+        if ($request->filled('date_reception')) {
+            $query->where('date_reception', $request->date_reception);
         }
 
         if ($request->filled('recherche')) {
@@ -78,13 +108,17 @@ class FactureController extends Controller
         $direction = $request->get('direction', 'desc');
         $query->orderBy($sort, $direction);
 
-        $factures    = $query->paginate(15)->withQueryString();
-        $clients     = Client::actif()->orderBy('nom')->get();
-        $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
-        $consultants  = Consultant::actif()->orderBy('nom')->get();
-        $stats       = $this->factureService->getStats();
+        return $query;
+    }
 
-        return view('factures.index', compact('factures', 'clients', 'fournisseurs', 'consultants', 'stats'));
+    /**
+     * Export Excel des factures (avec les mêmes filtres que la liste).
+     */
+    public function export(Request $request)
+    {
+        $query = $this->buildIndexQuery($request);
+
+        return Excel::download(new FacturesExport($query), 'factures-' . now()->format('Y-m-d') . '.xlsx');
     }
 
     public function create(Request $request)

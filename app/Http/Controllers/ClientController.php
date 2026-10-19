@@ -179,4 +179,20 @@ class ClientController extends Controller
             
         return response()->json(['unique' => !$exists]);
     }
+
+    /**
+     * Recherche AJAX pour l'autocomplétion
+     */
+    public function search(Request $request)
+    {
+        $query = $request->get('q', '');
+
+        $clients = Client::actif()
+            ->when($query, fn ($q) => $q->recherche($query))
+            ->orderBy('nom')
+            ->limit(10)
+            ->get(['id', 'nom', 'email', 'devise']);
+
+        return response()->json($clients);
+    }
 }

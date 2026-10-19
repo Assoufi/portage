@@ -61,14 +61,16 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Client</label>
-                    <select name="client_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
-                        <option value="">Tous</option>
-                        @foreach($clients as $client)
-                            <option value="{{ $client->id }}" {{ request('client_id') == $client->id ? 'selected' : '' }}>
-                                {{ $client->nom }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="relative">
+                        <input type="text" name="client_nom" id="clientSearch"
+                               value="{{ request('client_nom', $clientSelectionne?->nom) }}"
+                               placeholder="Saisir le nom..."
+                               autocomplete="off"
+                               data-search-url="{{ url('/api/clients/search') }}"
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                        <input type="hidden" name="client_id" id="clientId" value="{{ request('client_id') }}">
+                        <div id="clientSuggestions" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-60 overflow-auto"></div>
+                    </div>
                 </div>
 
                 <div>
@@ -85,14 +87,16 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Consultant</label>
-                    <select name="consultant_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
-                        <option value="">Tous</option>
-                        @foreach($consultants as $consultant)
-                            <option value="{{ $consultant->id }}" {{ request('consultant_id') == $consultant->id ? 'selected' : '' }}>
-                                {{ $consultant->nom }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="relative">
+                        <input type="text" name="consultant_nom" id="consultantSearch"
+                               value="{{ request('consultant_nom', $consultantSelectionne?->nom) }}"
+                               placeholder="Saisir le nom..."
+                               autocomplete="off"
+                               data-search-url="{{ url('/api/consultants/search') }}"
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                        <input type="hidden" name="consultant_id" id="consultantId" value="{{ request('consultant_id') }}">
+                        <div id="consultantSuggestions" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-60 overflow-auto"></div>
+                    </div>
                 </div>
 
                 <div>
@@ -118,11 +122,21 @@
                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Date reception</label>
+                    <input type="date" name="date_reception" value="{{ request('date_reception') }}"
+                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                </div>
+
                 <div class="md:col-span-3 flex items-end space-x-2">
                     <button type="submit" class="flex-1 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Filtrer
                     </button>
-                    @if(request()->anyFilled(['numero_facture', 'facture_reglee', 'periode', 'client_id', 'fournisseur_id', 'consultant_id', 'statut', 'date_debut', 'date_fin', 'recherche']))
+                    <button type="submit" formaction="{{ route('factures.export') }}"
+                            class="flex-1 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Extraire
+                    </button>
+                    @if(request()->anyFilled(['numero_facture', 'facture_reglee', 'periode', 'client_id', 'client_nom', 'fournisseur_id', 'consultant_id', 'consultant_nom', 'statut', 'date_debut', 'date_fin', 'date_reception', 'recherche']))
                         <a href="{{ route('factures.index') }}" class="flex-1 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-center transition duration-300">
                             Réinitialiser
                         </a>
@@ -241,3 +255,128 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        initAutocomplete({
+            inputId: 'consultantSearch',
+            idInputId: 'consultantId',
+            boxId: 'consultantSuggestions',
+            emptyLabel: 'Aucun consultant trouvé'
+        });
+
+        initAutocomplete({
+            inputId: 'clientSearch',
+            idInputId: 'clientId',
+            boxId: 'clientSuggestions',
+            emptyLabel: 'Aucun client trouvé'
+        });
+
+        function initAutocomplete({ inputId, idInputId, boxId, emptyLabel }) {
+            const input = document.getElementById(inputId);
+            const idInput = document.getElementById(idInputId);
+            const box = document.getElementById(boxId);
+
+            if (!input || !idInput || !box) return;
+
+            let timer;
+            let selectedIndex = -1;
+
+            input.addEventListener('input', function () {
+                const query = this.value.trim();
+                clearTimeout(timer);
+
+                if (query.length < 2) {
+                    hide();
+                    idInput.value = '';
+                    return;
+                }
+
+                // Anti-rebond : évite une requête par frappe clavier
+                timer = setTimeout(() => fetchItems(query), 300);
+            });
+
+            input.addEventListener('keydown', function (e) {
+                const items = box.querySelectorAll('.suggestion-item');
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    highlight(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    highlight(items);
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+                    pick(items[selectedIndex]);
+                } else if (e.key === 'Escape') {
+                    hide();
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!input.contains(e.target) && !box.contains(e.target)) hide();
+            });
+
+            function fetchItems(query) {
+                fetch(`${input.dataset.searchUrl}?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Accept': 'application/json' }
+                })
+                    .then(r => {
+                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        return r.json();
+                    })
+                    .then(render)
+                    .catch(() => showMessage('Erreur lors de la recherche.'));
+            }
+
+            function render(items) {
+                if (!Array.isArray(items) || items.length === 0) {
+                    showMessage(emptyLabel);
+                    return;
+                }
+
+                box.innerHTML = items.map(c => `
+                    <div class="suggestion-item px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                         data-id="${c.id}" data-nom="${c.nom}">
+                        <div class="font-medium text-gray-900">${c.nom}</div>
+                        <div class="text-xs text-gray-500">${c.email ?? ''}</div>
+                    </div>`).join('');
+
+                box.classList.remove('hidden');
+                selectedIndex = -1;
+
+                box.querySelectorAll('.suggestion-item').forEach(item => {
+                    item.addEventListener('click', () => pick(item));
+                });
+            }
+
+            function showMessage(message) {
+                box.innerHTML = `<div class="px-4 py-2 text-gray-500 text-sm">${message}</div>`;
+                box.classList.remove('hidden');
+                selectedIndex = -1;
+            }
+
+            function highlight(items) {
+                items.forEach((item, index) => {
+                    item.classList.toggle('bg-blue-50', index === selectedIndex);
+                    if (index === selectedIndex) item.scrollIntoView({ block: 'nearest' });
+                });
+            }
+
+            function pick(item) {
+                input.value = item.dataset.nom;
+                idInput.value = item.dataset.id;
+                hide();
+            }
+
+            function hide() {
+                box.classList.add('hidden');
+                selectedIndex = -1;
+            }
+        }
+    });
+</script>
+@endpush
