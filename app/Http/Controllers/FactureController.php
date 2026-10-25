@@ -73,9 +73,7 @@ class FactureController extends Controller
         }
 
         if ($request->filled('periode')) {
-            $debut = $request->periode . '-01';
-            $fin   = date('Y-m-t', strtotime($debut));
-            $query->whereBetween('periode', [$debut, $fin]);
+            $query->where('periode', $request->periode);
         }
 
         if ($request->filled('statut')) {
@@ -119,6 +117,50 @@ class FactureController extends Controller
         $query = $this->buildIndexQuery($request);
 
         return Excel::download(new FacturesExport($query), 'factures-' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    /**
+     * Import Excel des factures sans N° Facture (délègue à la commande factures:importer).
+     */
+    public function importer(Request $request)
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
+        try {
+            $request->validate([
+                'fichier' => 'required|file|mimes:xlsx,xls|max:20480',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->route('factures.index')
+                ->withErrors($e->errors())
+                ->with('error', 'Import Excel : ' . ($e->errors()['fichier'][0] ?? 'fichier invalide (xlsx/xls, 20 Mo max).'));
+        }
+
+        $fichier = $request->file('fichier');
+        $nomOriginal = preg_replace('/[\\\\\/:*?"<>|]/', '_', $fichier->getClientOriginalName());
+        $nom = now()->format('Ymd_His') . '_' . $nomOriginal;
+        $directory = storage_path('app/imports/factures');
+        \File::ensureDirectoryExists($directory);
+        $fichier->move($directory, $nom);
+        $chemin = 'imports/factures/' . $nom;
+
+        try {
+            $code = \Artisan::call('factures:importer', ['--file' => $chemin, '--execute' => true]);
+            $rapport = \Artisan::output();
+        } catch (\Throwable $e) {
+            $code = 1;
+            $rapport = 'Erreur : ' . $e->getMessage();
+        }
+
+        $success = $code === 0;
+
+        return redirect()->route('factures.index')
+            ->with('import_rapport', $rapport)
+            ->with('import_fichier', $nom)
+            ->with($success ? 'success' : 'error', $success
+                ? 'Import Excel exécuté — rapport détaillé ci-dessous.'
+                : 'Import Excel terminé avec des erreurs — rapport détaillé ci-dessous.');
     }
 
     public function create(Request $request)

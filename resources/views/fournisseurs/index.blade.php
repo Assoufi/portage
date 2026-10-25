@@ -57,10 +57,8 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ICE</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IBAN</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Adresse</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Taux</th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Statut</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -74,16 +72,10 @@
                                 <div class="text-xs text-gray-500">ID: #{{ $fournisseur->id }}</div>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-sm text-gray-900">{{ $fournisseur->email }}</div>
-                            </td>
-                            <td class="px-6 py-4">
                                 <code class="text-sm bg-gray-100 px-2 py-1 rounded">{{ $fournisseur->ice }}</code>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm text-gray-900">{{ $fournisseur->iban ?: '—' }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm text-gray-900 max-w-xs truncate">{{ $fournisseur->adresse }}</div>
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <span class="text-sm font-medium">{{ $fournisseur->taux_formatted }}</span>

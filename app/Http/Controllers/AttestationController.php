@@ -120,16 +120,18 @@ class AttestationController extends Controller
         }
     }
 
-    public function pdf(Attestation $attestation)
+    public function pdf(Request $request, Attestation $attestation)
     {
         $attestation->load(['consultant', 'mission.fournisseur']);
 
         $fournisseur = $attestation->mission?->fournisseur;
 
-        $pdf = Pdf::loadView('attestations.pdf', compact('attestation', 'fournisseur'))
+        $signe = $request->boolean('signe', true);
+
+        $pdf = Pdf::loadView('attestations.pdf', compact('attestation', 'fournisseur', 'signe'))
             ->setPaper('a4');
 
-        $nomFichier = 'attestation-mission-'.$attestation->id.'.pdf';
+        $nomFichier = 'Attestation mission '.$attestation->consultant?->nom.'.pdf';
 
         return $pdf->download($nomFichier);
     }

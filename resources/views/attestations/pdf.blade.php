@@ -179,7 +179,7 @@
 
         <div class="signature-box">
             <p class="bold" style="margin-bottom: 10px;">La Direction</p>
-            @if($signatureBase64)
+            @if($signe && $signatureBase64)
                 <img width="180" src="{{ $signatureBase64 }}">
             @endif
         </div>

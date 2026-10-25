@@ -9,9 +9,13 @@
             Attestation #{{ $attestation->id }}
         </h2>
         <div class="flex space-x-3">
-            <a href="{{ route('attestations.pdf', $attestation) }}"
+            <a href="{{ route('attestations.pdf', ['attestation' => $attestation, 'signe' => 1]) }}"
                class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-                Télécharger le PDF
+                Télécharger (signée)
+            </a>
+            <a href="{{ route('attestations.pdf', ['attestation' => $attestation, 'signe' => 0]) }}"
+               class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                Télécharger (non signée)
             </a>
             <a href="{{ route('attestations.edit', $attestation) }}"
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">

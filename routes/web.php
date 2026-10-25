@@ -61,6 +61,8 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('repartitions', RepartitionController::class);
 
     // Routes pour les Factures
+    Route::post('factures/importer', [FactureController::class, 'importer'])
+        ->name('factures.importer');
     Route::get('factures/numero-suivant', [FactureController::class, 'numeroSuivant'])
         ->name('factures.numero-suivant');
     Route::get('factures/export', [FactureController::class, 'export'])
