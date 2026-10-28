@@ -139,11 +139,12 @@ class PaiementController extends Controller
         }
     }
 
-    public function destroy(Paiement $paiement)
+    public function destroy(Request $request, Paiement $paiement)
     {
         try {
             $this->paiementService->deletePaiement($paiement);
-            return redirect()->route('paiements.index')
+            return redirect()
+                ->route('paiements.index', $this->filtresCourants($request))
                 ->with('success', 'Paiement supprimé avec succès.');
         } catch (\Exception $e) {
             return redirect()->back()

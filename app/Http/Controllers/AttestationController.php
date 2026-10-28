@@ -105,13 +105,13 @@ class AttestationController extends Controller
         }
     }
 
-    public function destroy(Attestation $attestation)
+    public function destroy(Request $request, Attestation $attestation)
     {
         try {
             $this->attestationService->deleteAttestation($attestation);
 
             return redirect()
-                ->route('attestations.index')
+                ->route('attestations.index', $this->filtresCourants($request))
                 ->with('success', 'Attestation supprimée avec succès.');
         } catch (\Exception $e) {
             return redirect()

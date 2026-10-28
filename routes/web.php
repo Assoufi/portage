@@ -63,6 +63,10 @@ Route::middleware(['auth'])->group(function () {
     // Routes pour les Factures
     Route::post('factures/importer', [FactureController::class, 'importer'])
         ->name('factures.importer');
+    Route::post('factures/dispatcher', [FactureController::class, 'dispatcher'])
+        ->name('factures.dispatcher');
+    Route::get('factures/dispatcher/telecharger/{token}', [FactureController::class, 'dispatcherTelecharger'])
+        ->name('factures.dispatcher-telecharger');
     Route::get('factures/numero-suivant', [FactureController::class, 'numeroSuivant'])
         ->name('factures.numero-suivant');
     Route::get('factures/export', [FactureController::class, 'export'])

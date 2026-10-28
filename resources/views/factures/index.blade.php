@@ -8,6 +8,10 @@
             Factures
         </h2>
         <div class="flex gap-2">
+            <button id="dispatchBtn" onclick="ouvrirDispatcher()"
+                    class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                Dispatcher
+            </button>
             <button onclick="document.getElementById('importExcelModal').classList.remove('hidden')"
                     class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Importer Excel
@@ -192,7 +196,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($factures as $facture)
-                        <tr class="hover:bg-gray-50 transition duration-150">
+                        <tr class="hover:bg-gray-50 transition duration-150" data-facture-id="{{ $facture->id }}">
                             {{-- N° + Fournisseur regroupés --}}
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-mono font-medium text-gray-900">{{ $facture->numero_facture }}</div>
@@ -242,7 +246,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 01-2-2m4 4v6a2 2 0 01-2 2m4-4V4a2 2 0 01-2-2m4 4-6 6m6-6-6 6" />
                                         </svg>
                                     </a>
-                                    <form action="{{ route('factures.destroy', $facture) }}" method="POST" class="inline-block">
+                                    <form action="{{ route('factures.destroy', $facture) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" method="POST" class="inline-block">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit"
@@ -306,6 +310,17 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    {{-- Modal du Dispatcher : confirmation, traitement puis résultats --}}
+    <div id="dispatcherModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">Dispatcher les factures</h3>
+                <button onclick="fermerDispatcher()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="dispatcherBody"></div>
         </div>
     </div>
 @endsection
@@ -431,6 +446,185 @@
                 selectedIndex = -1;
             }
         }
+
+        /* ===================== Dispatcher ===================== */
+
+        const dispatcherState = { ids: [], busy: false };
+
+        function ouvrirDispatcher() {
+            if (dispatcherState.busy) return;
+
+            const ids = Array.from(document.querySelectorAll('tr[data-facture-id]'))
+                .map(tr => tr.dataset.factureId);
+
+            if (!ids.length) {
+                window.notify?.warning('Aucune facture à dispatcher dans cette liste.');
+                return;
+            }
+
+            dispatcherState.ids = ids;
+            document.getElementById('dispatcherBody').innerHTML = `
+                <p class="text-sm text-gray-600 mb-4">
+                    Les <b>${ids.length} facture(s) affichée(s)</b> seront traitées selon le mode de livraison
+                    de chaque client :
+                </p>
+                <ul class="text-sm text-gray-600 list-disc pl-5 mb-4 space-y-1">
+                    <li><b>Papier</b> : génération d'un PDF non signé, livré en un seul ZIP.</li>
+                    <li><b>Email</b> : envoi du PDF signé au destinataire du client (copie en CC).</li>
+                    <li><b>Whatsapp</b> : préparation des liens WhatsApp à ouvrir après le traitement.</li>
+                </ul>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="fermerDispatcher()"
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Annuler
+                    </button>
+                    <button type="button" onclick="lancerDispatcher()"
+                            class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Confirmer et dispatcher
+                    </button>
+                </div>`;
+
+            document.getElementById('dispatcherModal').classList.remove('hidden');
+        }
+
+        function fermerDispatcher() {
+            if (dispatcherState.busy) return;
+            document.getElementById('dispatcherModal').classList.add('hidden');
+        }
+
+        function lancerDispatcher() {
+            if (dispatcherState.busy) return;
+            dispatcherState.busy = true;
+
+            document.getElementById('dispatcherBody').innerHTML = `
+                <div class="flex flex-col items-center justify-center py-10 text-gray-500">
+                    <svg class="animate-spin w-8 h-8 mb-3 text-purple-500" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                        <path class="opacity-75" fill="currentColor" stroke-width="4" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    <p class="text-sm">Dispatch en cours… (génération des PDF, envois email)</p>
+                </div>`;
+            document.getElementById('dispatchBtn').disabled = true;
+
+            axios.post('{{ route('factures.dispatcher') }}', { facture_ids: dispatcherState.ids })
+                .then(({ data }) => afficherResultatsDispatcher(data))
+                .catch(err => {
+                    const msg = err?.response?.data?.message
+                        || (err?.response?.status === 422 ? 'Vérifications incomplètes, aucune facture traitée.' : 'Erreur lors du dispatch.');
+                    window.notify?.error(msg);
+                    dispatcherState.busy = false;
+                    document.getElementById('dispatchBtn').disabled = false;
+                    ouvrirDispatcher();
+                });
+        }
+
+        function afficherResultatsDispatcher(data) {
+            const s = data.stats;
+
+            let html = `
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <div class="bg-gray-50 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-gray-900">${s.papier ?? 0}</p>
+                        <p class="text-xs text-gray-500">PDF Papier (ZIP)</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-green-600">${s.email ?? 0}</p>
+                        <p class="text-xs text-gray-500">Emails envoyés</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-blue-600">${s.whatsapp ?? 0}</p>
+                        <p class="text-xs text-gray-500">Liens WhatsApp</p>
+                    </div>
+                </div>`;
+
+            if (data.zip_url) {
+                html += `
+                    <a href="${data.zip_url}" download
+                       class="block w-full text-center bg-gray-700 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded-lg transition duration-300 mb-4">
+                        Télécharger les PDF (ZIP)
+                    </a>`;
+            }
+
+            if ((data.whatsapp ?? []).length) {
+                html += `
+                    <p class="text-sm font-medium text-gray-700 mb-2">Livraisons WhatsApp :</p>
+                    <ul class="text-sm mb-4 space-y-1 max-h-40 overflow-y-auto">
+                        ${data.whatsapp.map(w => `
+                            <li class="flex items-center justify-between gap-2">
+                                <span class="font-mono text-gray-700">${escapeHtml(w.numero_facture)}</span>
+                                <span class="text-gray-500 truncate">${escapeHtml(w.telephone)}</span>
+                                <a href="${w.url}" target="_blank" rel="noopener"
+                                   class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-1 px-3 rounded transition duration-150 whitespace-nowrap">
+                                    Ouvrir WhatsApp
+                                </a>
+                            </li>`).join('')}
+                    </ul>
+                    <button type="button" onclick="ouvrirToutWhatsapp()"
+                            class="text-xs text-green-700 hover:text-green-900 underline mb-4">
+                        Tout ouvrir (une fenêtre à la fois)
+                    </button>`;
+            }
+
+            if ((data.erreurs ?? []).length) {
+                html += `
+                    <div class="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+                        <p class="text-sm font-medium text-red-700 mb-1">Non livrées / à vérifier :</p>
+                        <ul class="text-xs text-red-600 list-disc pl-4 space-y-1">
+                            ${data.erreurs.map(e => `<li><span class="font-mono">${escapeHtml(e.numero_facture)}</span> — ${escapeHtml(e.message)}</li>`).join('')}
+                        </ul>
+                    </div>`;
+            }
+
+            if (s.sans_mode) {
+                html += `<p class="text-xs text-gray-500 mb-2">${s.sans_mode} facture(s) ignorée(s) (client sans mode de livraison).</p>`;
+            }
+
+            html += `
+                <div class="flex justify-end">
+                    <button type="button" onclick="document.getElementById('dispatcherModal').classList.add('hidden')"
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Fermer
+                    </button>
+                </div>`;
+
+            document.getElementById('dispatcherBody').innerHTML = html;
+
+            if (data.zip_url) {
+                const lien = document.createElement('a');
+                lien.href = data.zip_url;
+                lien.download = '';
+                document.body.appendChild(lien);
+                lien.click();
+                lien.remove();
+            }
+
+            if ((data.erreurs ?? []).length) {
+                window.notify?.warning('Dispatch terminé, vérifiez les erreurs.');
+            } else {
+                window.notify?.success('Dispatch terminé avec succès.');
+            }
+        }
+
+        function ouvrirToutWhatsapp() {
+            const liens = Array.from(document.querySelectorAll('#dispatcherBody a[href^="https://wa.me/"]'));
+            liens.forEach((lien, i) => setTimeout(() => window.open(lien.href, '_blank'), i * 800));
+        }
+
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[c]);
+        }
+
+        // Expose les gestionnaires du Dispatcher au scope global,
+        // requis par les attributs onclick des boutons et de la modal.
+        Object.assign(window, {
+            ouvrirDispatcher: ouvrirDispatcher,
+            fermerDispatcher: fermerDispatcher,
+            lancerDispatcher: lancerDispatcher,
+            afficherResultatsDispatcher: afficherResultatsDispatcher,
+            ouvrirToutWhatsapp: ouvrirToutWhatsapp,
+        });
     });
 </script>
 @endpush

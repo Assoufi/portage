@@ -173,7 +173,7 @@ class MissionController extends Controller
         }
     }
 
-    public function destroy(Mission $mission)
+    public function destroy(Request $request, Mission $mission)
     {
         try {
             DB::beginTransaction();
@@ -183,7 +183,7 @@ class MissionController extends Controller
             DB::commit();
             
             return redirect()
-                ->route('missions.index')
+                ->route('missions.index', $this->filtresCourants($request))
                 ->with('success', 'Mission supprimée avec succès.');
                 
         } catch (\Exception $e) {

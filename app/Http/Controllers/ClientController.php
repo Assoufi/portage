@@ -143,7 +143,7 @@ class ClientController extends Controller
         }
     }
 
-    public function destroy(Client $client)
+    public function destroy(Request $request, Client $client)
     {
         try {
             if ($client->missions()->exists()) {
@@ -159,7 +159,7 @@ class ClientController extends Controller
             DB::commit();
             
             return redirect()
-                ->route('clients.index')
+                ->route('clients.index', $this->filtresCourants($request))
                 ->with('success', 'Client supprimé avec succès.');
                 
         } catch (\Exception $e) {

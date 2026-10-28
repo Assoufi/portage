@@ -3,6 +3,7 @@ import Alpine from 'alpinejs';
 import mask from '@alpinejs/mask';
 import intersect from '@alpinejs/intersect';
 import focus from '@alpinejs/focus';
+import axios from 'axios';
 
 // Enregistrer les plugins Alpine
 Alpine.plugin(mask);
@@ -133,6 +134,6 @@ window.Alpine = Alpine;
 Alpine.start();
 
 // Configuration CSRF pour les requêtes AJAX
-window.axios = require('axios');
+window.axios = axios;
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 window.axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').content;

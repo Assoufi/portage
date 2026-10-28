@@ -172,7 +172,7 @@
                                         </svg>
                                     </a>
                                     {{-- Supprimer --}}
-                                    <form action="{{ route('missions.destroy', $mission) }}" method="POST" class="inline-block">
+                                    <form action="{{ route('missions.destroy', $mission) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" method="POST" class="inline-block">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit"

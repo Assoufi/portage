@@ -115,13 +115,13 @@ class DevisController extends Controller
         }
     }
 
-    public function destroy(Devis $devis)
+    public function destroy(Request $request, Devis $devis)
     {
         try {
             $this->devisService->deleteDevis($devis);
 
             return redirect()
-                ->route('devis.index')
+                ->route('devis.index', $this->filtresCourants($request))
                 ->with('success', 'Devis supprimé avec succès.');
         } catch (\Exception $e) {
             return redirect()

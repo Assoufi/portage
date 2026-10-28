@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class FacturesExport implements FromCollection, WithHeadings, WithColumnFormatting, ShouldAutoSize
@@ -43,8 +44,9 @@ class FacturesExport implements FromCollection, WithHeadings, WithColumnFormatti
     }
 
     /**
-     * Formats par colonne : dates réelles (B, K, M, Q)
+     * Formats par colonne : dates réelles au format dd/mm/yyyy (B, K, M, Q)
      * et valeurs numériques (E, F).
+     * La période (O) est exportée en texte au format mm/yyyy.
      */
     public function columnFormats(): array
     {
@@ -63,11 +65,15 @@ class FacturesExport implements FromCollection, WithHeadings, WithColumnFormatti
      * mappé selon la structure demandée. Chargement par lots pour
      * limiter la mémoire sur de grands volumes.
      *
-     * Les dates sont renvoyées en instances Carbon (cellules de type
-     * "Date" réelles) et les montants en nombres (cellules numériques).
+     * Les dates sont converties en séries Excel via Date::dateTimeToExcel()
+     * de façon à obtenir de vraies cellules de type Date au format
+     * dd/mm/yyyy (voir columnFormats) : si elles restaient en Carbon,
+     * Maatwebsite les écrirait sous forme de chaînes "2026-01-15 00:00:00".
      */
     public function collection(): \Illuminate\Support\Collection
     {
+        $dateExcel = fn ($d) => $d ? Date::dateTimeToExcel($d) : null;
+
         $rows = [];
 
         // Export de reporting : certains volumes dépassent la limite par défaut
@@ -76,7 +82,7 @@ class FacturesExport implements FromCollection, WithHeadings, WithColumnFormatti
         $this->query
             ->with(['client', 'fournisseur', 'details'])
             ->orderBy('id')
-            ->chunk(500, function ($factures) use (&$rows) {
+            ->chunk(500, function ($factures) use (&$rows, $dateExcel) {
                 foreach ($factures as $facture) {
                     $details = $facture->details->isNotEmpty()
                         ? $facture->details
@@ -85,7 +91,7 @@ class FacturesExport implements FromCollection, WithHeadings, WithColumnFormatti
                     foreach ($details as $detail) {
                         $rows[] = [
                             $facture->numero_facture,
-                            $facture->date_facture,
+                            $dateExcel($facture->date_facture),
                             $detail?->designation,
                             $detail?->quantite,
                             $detail?->prix_unitaire ?? 0,
@@ -94,13 +100,14 @@ class FacturesExport implements FromCollection, WithHeadings, WithColumnFormatti
                             $facture->fournisseur?->nom,
                             $facture->beneficiaire,
                             $facture->client?->devise,
-                            $facture->date_reglement,
+                            $dateExcel($facture->date_reglement),
                             $facture->reference_reglement,
-                            $facture->date_paiement,
+                            $dateExcel($facture->date_paiement),
                             $facture->reference_paiement,
-                            $facture->periode?->format('Y-m'),
+                            // Période (mois) : format mm/yyyy (ex. 01/2026)
+                            $facture->periode?->format('m/Y'),
                             null,
-                            $facture->date_reception,
+                            $dateExcel($facture->date_reception),
                             null,
                             null,
                         ];

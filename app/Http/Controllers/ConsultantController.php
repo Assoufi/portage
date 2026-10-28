@@ -143,7 +143,7 @@ class ConsultantController extends Controller
     /**
      * Supprime un consultant (soft delete)
      */
-    public function destroy(Consultant $consultant)
+    public function destroy(Request $request, Consultant $consultant)
     {
         try {
             // Vérifier si le consultant a des missions
@@ -160,7 +160,7 @@ class ConsultantController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('consultants.index')
+                ->route('consultants.index', $this->filtresCourants($request))
                 ->with('success', 'Consultant supprimé avec succès.');
 
         } catch (\Exception $e) {

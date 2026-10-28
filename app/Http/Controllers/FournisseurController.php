@@ -141,7 +141,7 @@ class FournisseurController extends Controller
         }
     }
 
-    public function destroy(Fournisseur $fournisseur)
+    public function destroy(Request $request, Fournisseur $fournisseur)
     {
         try {
             if ($fournisseur->missions()->exists()) {
@@ -163,7 +163,7 @@ class FournisseurController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('fournisseurs.index')
+                ->route('fournisseurs.index', $this->filtresCourants($request))
                 ->with('success', 'Fournisseur supprimé avec succès.');
 
         } catch (\Exception $e) {

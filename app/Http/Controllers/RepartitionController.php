@@ -121,13 +121,13 @@ class RepartitionController extends Controller
         }
     }
 
-    public function destroy(Repartition $repartition)
+    public function destroy(Request $request, Repartition $repartition)
     {
         try {
             $this->repartitionService->deleteRepartition($repartition);
 
             return redirect()
-                ->route('repartitions.index')
+                ->route('repartitions.index', $this->filtresCourants($request))
                 ->with('success', 'Répartition supprimée avec succès.');
         } catch (\Exception $e) {
             return redirect()

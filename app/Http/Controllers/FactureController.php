@@ -9,6 +9,7 @@ use App\Models\Consultant;
 use App\Models\Mission;
 use App\Http\Requests\FactureRequest;
 use App\Exports\FacturesExport;
+use App\Mail\FactureLivraison;
 use App\Services\FactureService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -249,16 +250,282 @@ class FactureController extends Controller
         return view('factures.show', compact('facture'));
     }
 
-    public function pdf(Facture $facture)
+    /**
+     * Génère le PDF de la facture en streaming.
+     * ?signe=0 (ou paramètre routeur) produit la version non signée
+     * (sans signature/cachet du fournisseur) pour la livraison Papier.
+     */
+    public function pdf(Request $request, Facture $facture)
     {
         $facture->load(['client', 'fournisseur', 'consultant', 'details']);
 
         $fournisseur = $facture->fournisseur;
+        $signe = $request->boolean('signe', true);
 
-        $pdf = Pdf::loadView('factures.pdf', compact('facture', 'fournisseur'))
+        $pdf = Pdf::loadView('factures.pdf', compact('facture', 'fournisseur', 'signe'))
             ->setPaper('a4');
 
         return $pdf->stream('facture-'.$facture->numero_facture.'.pdf');
+    }
+
+    /**
+     * Génère le contenu (octets) du PDF de la facture,
+     * selon la version demandée : signée ou non signée.
+     */
+    private function genererPdf(Facture $facture, bool $signe = true): string
+    {
+        $facture->loadMissing(['client', 'fournisseur', 'consultant', 'details']);
+
+        return Pdf::loadView('factures.pdf', [
+                'facture'     => $facture,
+                'fournisseur' => $facture->fournisseur,
+                'signe'       => $signe,
+            ])
+            ->setPaper('a4')
+            ->output();
+    }
+
+    /**
+     * Dispatcher : traite en une fois les factures affichées dans la liste
+     * selon le mode_livraison de chaque client :
+     *  - "Papier"   : génère le PDF non signé, zippé en un ZIP téléchargeable ;
+     *  - "Email"    : envoie le PDF signé en pièce jointe (notifyto / notifycc) ;
+     *  - "Whatsapp" : renvoie les liens wa.me à ouvrir côté client.
+     */
+    public function dispatcher(Request $request)
+    {
+        $validated = $request->validate([
+            'facture_ids'   => 'required|array|max:100',
+            'facture_ids.*' => 'integer|exists:factures,id',
+        ]);
+
+        set_time_limit(0);
+
+        $this->nettoyerDispatchesAniens();
+
+        $token = now()->format('Ymd_His') . '_' . \Str::lower(\Str::random(8));
+        $directory = storage_path('app/dispatches/' . $token);
+        \File::ensureDirectoryExists($directory);
+
+        $factures = Facture::with(['client', 'fournisseur', 'consultant', 'details'])
+            ->whereIn('id', $validated['facture_ids'])
+            ->orderBy('date_facture', 'desc')
+            ->get();
+
+        $stats = [
+            'papier'      => 0,
+            'email'       => 0,
+            'whatsapp'    => 0,
+            'sans_mode'   => 0,
+        ];
+        $erreurs   = [];
+        $whatsapp  = [];
+        $fichiersPapier = []; // [chemin => nom de fichier dans le ZIP]
+        $fichiersDejaGeneres = []; // facture_id => chemin (évite les doublons si Papier + Email)
+
+        foreach ($factures as $facture) {
+            $client = $facture->client;
+            $modes  = collect($client?->mode_livraison ?? []);
+
+            if ($modes->isEmpty()) {
+                $stats['sans_mode']++;
+                $erreurs[] = [
+                    'numero_facture' => $facture->numero_facture,
+                    'message'        => 'Aucun mode de livraison défini pour le client '
+                        . ($client?->nom ?? '—') . '.',
+                ];
+                continue;
+            }
+
+            foreach ($modes as $mode) {
+                try {
+                    match ($mode) {
+                        'Papier' => $this->dispatcherPapier($facture, $directory, $stats, $fichiersPapier, $fichiersDejaGeneres),
+                        'Email'  => $this->dispatcherEmail($facture, $stats, $erreurs),
+                        'Whatsapp' => $this->dispatcherWhatsapp($facture, $stats, $whatsapp, $erreurs),
+                        default => $erreurs[] = [
+                            'numero_facture' => $facture->numero_facture,
+                            'message'        => "Mode de livraison inconnu : {$mode}.",
+                        ],
+                    };
+                } catch (\Throwable $e) {
+                    \Log::error("Dispatcher facture {$facture->numero_facture} ({$mode}) : " . $e->getMessage());
+                    $erreurs[] = [
+                        'numero_facture' => $facture->numero_facture,
+                        'message'        => "Erreur lors de l'envoi ({$mode}) : " . $e->getMessage(),
+                    ];
+                }
+            }
+        }
+
+        $zipToken = null;
+        if ($fichiersPapier !== []) {
+            $zipToken = 'factures-papier-' . $token . '.zip';
+            $this->compresser($directory, $fichiersPapier, storage_path('app/dispatches/' . $zipToken));
+        }
+
+        return response()->json([
+            'success'  => true,
+            'stats'    => $stats,
+            'zip_url'  => $zipToken !== null ? route('factures.dispatcher-telecharger', $token) : null,
+            'whatsapp' => $whatsapp,
+            'erreurs'  => $erreurs,
+        ]);
+    }
+
+    /**
+     * Livraison "Papier" : PDF non signé enregistré pour le ZIP final.
+     */
+    private function dispatcherPapier(Facture $facture, string $directory, array &$stats, array &$fichiersPapier, array &$fichiersDejaGeneres): void
+    {
+        if (! isset($fichiersDejaGeneres[$facture->id])) {
+            $nom = 'facture-' . $facture->numero_facture . '.pdf';
+            $chemin = $directory . DIRECTORY_SEPARATOR . $nom;
+
+            \File::put($chemin, $this->genererPdf($facture, false));
+
+            $fichiersDejaGeneres[$facture->id] = $chemin;
+        }
+
+        $fichiersPapier[$fichiersDejaGeneres[$facture->id]] = basename($fichiersDejaGeneres[$facture->id]);
+        $stats['papier']++;
+    }
+
+    /**
+     * Livraison "Email" : envoie la facture signée à notifyto en copie notifycc.
+     */
+    private function dispatcherEmail(Facture $facture, array &$stats, array &$erreurs): void
+    {
+        $destinataires = $this->destinatairesPropres($facture->client?->notifyto);
+        $copie         = $this->destinatairesPropres($facture->client?->notifycc);
+
+        if ($destinataires === []) {
+            $erreurs[] = [
+                'numero_facture' => $facture->numero_facture,
+                'message'        => 'Mode Email : aucun destinataire (notifyto) pour le client '
+                    . ($facture->client?->nom ?? '—') . '.',
+            ];
+            return;
+        }
+
+        $pdf = $this->genererPdf($facture, true);
+
+        \Mail::to($destinataires)
+            ->cc($copie)
+            ->send(new FactureLivraison($facture, $pdf));
+
+        $stats['email']++;
+    }
+
+    /**
+     * Livraison "Whatsapp" : prépare le lien wa.me du client.
+     */
+    private function dispatcherWhatsapp(Facture $facture, array &$stats, array &$whatsapp, array &$erreurs): void
+    {
+        $telephone = $this->numeroWhatsapp($facture->client?->telephone);
+
+        if ($telephone === null) {
+            $erreurs[] = [
+                'numero_facture' => $facture->numero_facture,
+                'message'        => 'Mode Whatsapp : numéro de téléphone manquant pour le client '
+                    . ($facture->client?->nom ?? '—') . '.',
+            ];
+            return;
+        }
+
+        $whatsapp[] = [
+            'numero_facture' => $facture->numero_facture,
+            'client'         => $facture->client->nom,
+            'telephone'      => $telephone,
+            'url'            => 'https://wa.me/' . $telephone,
+        ];
+        $stats['whatsapp']++;
+    }
+
+    /**
+     * Normalise une liste d'adresses email (séparées par , ou ;) en tableau.
+     */
+    private function destinatairesPropres(?string $champ): array
+    {
+        if ($champ === null || $champ === '') {
+            return [];
+        }
+
+        return collect(preg_split('/[,;]+/', $champ))
+            ->map(fn ($e) => trim($e))
+            ->filter(fn ($e) => $e !== '' && filter_var($e, FILTER_VALIDATE_EMAIL) !== false)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Nettoie un numéro de téléphone pour l'API wa.me (chiffres uniquement),
+     * en conservant l'indicateur international s'il est présent.
+     */
+    private function numeroWhatsapp(?string $telephone): ?string
+    {
+        $numero = preg_replace('/[^0-9]/', '', $telephone ?? '');
+
+        return $numero !== '' ? $numero : null;
+    }
+
+    /**
+     * Compresse les fichiers Papier générés dans un ZIP.
+     */
+    private function compresser(string $directory, array $fichiersPapier, string $zipPath): void
+    {
+        $zip = new \ZipArchive();
+
+        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            throw new \Exception('Impossible de créer le fichier ZIP des factures Papier.');
+        }
+
+        foreach ($fichiersPapier as $chemin => $nom) {
+            if (is_file($chemin)) {
+                $zip->addFile($chemin, $nom);
+            }
+        }
+
+        $zip->close();
+        \File::deleteDirectory($directory);
+    }
+
+    /**
+     * Supprime les livraisons de plus de 24h.
+     */
+    private function nettoyerDispatchesAniens(): void
+    {
+        $repertoire = storage_path('app/dispatches');
+
+        if (! is_dir($repertoire)) {
+            return;
+        }
+
+        foreach (glob($repertoire . DIRECTORY_SEPARATOR . '*') ?: [] as $fichier) {
+            if (filemtime($fichier) < now()->subDay()->getTimestamp()) {
+                @unlink($fichier);
+            }
+        }
+    }
+
+    /**
+     * Téléchargement du ZIP des factures Papier générées par le Dispatcher
+     * (renvoie le fichier, supprimé après l'envoi).
+     */
+    public function dispatcherTelecharger(string $token)
+    {
+        if (! preg_match('/^[A-Za-z0-9_-]+$/', $token)) {
+            abort(404);
+        }
+
+        $chemin = storage_path('app/dispatches/factures-papier-' . $token . '.zip');
+
+        if (! is_file($chemin)) {
+            abort(404, 'Livrable introuvable (expiré ou déjà téléchargé).');
+        }
+
+        return response()->download($chemin, 'factures-papier-' . $token . '.zip')->deleteFileAfterSend(true);
     }
 
     public function edit(Facture $facture)
@@ -294,13 +561,21 @@ class FactureController extends Controller
         }
     }
 
-    public function destroy(Facture $facture)
+    /**
+     * Supprime une facture puis redirige vers la liste en préservant
+     * les critères de recherche actuels (tous les paramètres de la
+     * requête d'origine, sauf le n° de page qui est réinitialisé :
+     * la ligne supprimée peut vider la page courante).
+     * Le formulaire de suppression de index.blade.php doit donc passer
+     * la query string courante dans son action (voir action du form).
+     */
+    public function destroy(Request $request, Facture $facture)
     {
         try {
             $this->factureService->deleteFacture($facture);
 
             return redirect()
-                ->route('factures.index')
+                ->route('factures.index', $this->filtresCourants($request))
                 ->with('success', 'Facture supprimée avec succès.');
         } catch (\Exception $e) {
             return redirect()

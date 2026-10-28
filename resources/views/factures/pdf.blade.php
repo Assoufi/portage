@@ -113,6 +113,7 @@
         {{ $fournisseur?->footer ?? 'Facture générée le '.now()->format('d/m/Y à H:i') }}
     </div>
 
+    @php $signe = $signe ?? true; @endphp
     @php
         $client = $facture->client;
         $consultant = $facture->consultant;
@@ -132,7 +133,9 @@
             }
         }
 
-        if ($fournisseur?->signature) {
+        // Signature intégrée uniquement pour la version signée
+        // (cachée pour les livraisons "Papier" via $signe = false).
+        if (($signe ?? true) && $fournisseur?->signature) {
             $chemin = \Illuminate\Support\Facades\Storage::disk('public')->path($fournisseur->signature);
             if (is_file($chemin)) {
                 $mime = mime_content_type($chemin) ?: 'image/png';
