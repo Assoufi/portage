@@ -15,7 +15,7 @@ class ConsultantFactory extends Factory
         return [
             'nom' => fake()->name(),
             'cin' => strtoupper(fake()->bothify('??#########')),
-            'fonction' => fake()->jobTitle(),
+            'fonction' => substr(fake()->jobTitle(), 0, 50),
             'email' => fake()->unique()->safeEmail(),
             'tel' => fake()->numerify('06########'),
             'rib' => fake()->iban('FR'),

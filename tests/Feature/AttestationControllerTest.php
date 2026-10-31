@@ -248,7 +248,7 @@ class AttestationControllerTest extends TestCase
             ->get('/attestations/'.$attestation->id.'/pdf');
 
         $response->assertOk();
-        $response->assertDownload('attestation-mission-'.$attestation->id.'.pdf');
+        $response->assertDownload('Attestation mission '.$attestation->consultant->nom.'.pdf');
     }
 
     public function test_attestation_pdf_uses_fournisseur_branding(): void
@@ -274,6 +274,6 @@ class AttestationControllerTest extends TestCase
             ->get('/attestations/'.$attestation->id.'/pdf');
 
         $response->assertOk();
-        $response->assertDownload('attestation-mission-'.$attestation->id.'.pdf');
+        $response->assertDownload('Attestation mission '.$attestation->consultant->nom.'.pdf');
     }
 }

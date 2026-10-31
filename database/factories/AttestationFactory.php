@@ -19,7 +19,7 @@ class AttestationFactory extends Factory
             'mission_id' => Mission::factory(),
             // Par défaut, l'attestation suit le consultant de la mission
             'consultant_id' => fn (array $attributes) => Mission::findOrFail($attributes['mission_id'])->consultant_id,
-            'fonction' => fake()->jobTitle(),
+            'fonction' => substr(fake()->jobTitle(), 0, 100),
             'date_attestation' => fake()->dateTimeBetween($dateDebut, 'now'),
             'date_signature' => fake()->dateTimeBetween($dateDebut, 'now'),
             'date_debut' => $dateDebut,

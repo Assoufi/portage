@@ -5,6 +5,7 @@
 use App\Http\Controllers\AttestationController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ConsultantController;
+use App\Http\Controllers\CommandeController;
 use App\Http\Controllers\DevisController;
 use App\Http\Controllers\FactureController;
 use App\Http\Controllers\FournisseurController;
@@ -51,6 +52,9 @@ Route::middleware(['auth'])->group(function () {
         ->name('missions.dashboard');
     Route::get('missions/{mission}/dupliquer', [MissionController::class, 'dupliquer'])
         ->name('missions.dupliquer');
+
+    // Routes pour les Commandes (sous-menu Missions)
+    Route::resource('commandes', CommandeController::class);
 
     // Routes pour les Paiements
     Route::post('paiements/importer', [PaiementController::class, 'importer'])
