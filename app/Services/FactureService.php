@@ -2,17 +2,18 @@
 
 namespace App\Services;
 
-use App\Models\Facture;
 use App\Models\DetailFacture;
+use App\Models\Facture;
+use App\Support\NumeroRetry;
 use Illuminate\Support\Facades\DB;
 
 class FactureService
 {
     private function prepareDetail(array $detail, Facture $facture): array
     {
-        $montantHt             = (float) ($detail['quantite'] ?? 1) * (float) ($detail['prix_unitaire'] ?? 0);
-        $montantTva            = $montantHt * (float) ($facture->taux_tva ?? 20) / 100;
-        $detail['montant_ht']  = $montantHt;
+        $montantHt = (float) ($detail['quantite'] ?? 1) * (float) ($detail['prix_unitaire'] ?? 0);
+        $montantTva = $montantHt * (float) ($facture->taux_tva ?? 20) / 100;
+        $detail['montant_ht'] = $montantHt;
         $detail['montant_tva'] = $montantTva;
         $detail['montant_ttc'] = $montantHt + $montantTva;
 
@@ -22,14 +23,18 @@ class FactureService
     public function createFacture(array $data): Facture
     {
         return DB::transaction(function () use ($data) {
-            if (!isset($data['numero_facture'])) {
-                // Fallback : génère un numéro yyyy-ddd basé sur le fournisseur
-                $data['numero_facture'] = Facture::genererNumeroFacturePourFournisseur($data['fournisseur_id'] ?? null);
+            // Numéro saisi par l'utilisateur : la collision doit remonter telle quelle
+            if (isset($data['numero_facture']) && $data['numero_facture'] !== '') {
+                $facture = Facture::create($data);
+            } else {
+                $fournisseurId = $data['fournisseur_id'] ?? null;
+                $facture = NumeroRetry::sauvegarder(
+                    fn () => Facture::genererNumeroFacturePourFournisseur($fournisseurId),
+                    fn (string $numero) => Facture::create(array_merge($data, ['numero_facture' => $numero]))
+                );
             }
 
-            $facture = Facture::create($data);
-
-            if (!empty($data['details'])) {
+            if (! empty($data['details'])) {
                 foreach ($data['details'] as $detail) {
                     $detail['facture_id'] = $facture->id;
                     DetailFacture::create($this->prepareDetail($detail, $facture));
@@ -78,8 +83,8 @@ class FactureService
     {
         return DB::transaction(function () use ($facture, $data) {
             $facture->update([
-                'date_reglement'      => $data['date_reglement'] ?? now(),
-                'mode_reglement'      => $data['mode_reglement'] ?? null,
+                'date_reglement' => $data['date_reglement'] ?? now(),
+                'mode_reglement' => $data['mode_reglement'] ?? null,
                 'reference_reglement' => $data['reference_reglement'] ?? null,
             ]);
 
@@ -90,11 +95,18 @@ class FactureService
     public function clonerFacture(Facture $facture): Facture
     {
         return DB::transaction(function () use ($facture) {
-            $nouvelleFacture = new Facture();
+            $nouvelleFacture = new Facture;
             $donnees = $facture->except(['id', 'created_at', 'updated_at', 'numero_facture']);
+            $nouvelleFacture->fill($donnees);
 
-            $nouvelleFacture->numero_facture = Facture::genererNumeroFacturePourFournisseur($facture->fournisseur_id);
-            $nouvelleFacture->fill($donnees)->save();
+            // Numéro auto-généré : régénère en cas de collision avec une autre création concurrente
+            NumeroRetry::sauvegarder(
+                fn () => Facture::genererNumeroFacturePourFournisseur($facture->fournisseur_id),
+                function (string $numero) use ($nouvelleFacture) {
+                    $nouvelleFacture->numero_facture = $numero;
+                    $nouvelleFacture->save();
+                }
+            );
 
             foreach ($facture->details as $detail) {
                 $detailData = $detail->toArray();
@@ -113,18 +125,18 @@ class FactureService
 
     public function getStats(): array
     {
-        $totalFactures     = Facture::count();
-        $montantTotal      = Facture::sum('montant_ttc');
-        $montantTotalHt    = Facture::sum('total_ht');
-        $facturesReglees   = Facture::reglee()->count();
-        $montantRegle      = Facture::reglee()->sum('montant_ttc');
+        $totalFactures = Facture::count();
+        $montantTotal = Facture::sum('montant_ttc');
+        $montantTotalHt = Facture::sum('total_ht');
+        $facturesReglees = Facture::reglee()->count();
+        $montantRegle = Facture::reglee()->sum('montant_ttc');
         $facturesEnAttente = Facture::nonReglee()->actif()->count();
-        $montantEnAttente  = Facture::nonReglee()->actif()->sum('montant_ttc');
-        $facturesEnRetard  = Facture::nonReglee()
+        $montantEnAttente = Facture::nonReglee()->actif()->sum('montant_ttc');
+        $facturesEnRetard = Facture::nonReglee()
             ->actif()
             ->where('date_echeance', '<', now())
             ->count();
-        $montantEnRetard   = Facture::nonReglee()
+        $montantEnRetard = Facture::nonReglee()
             ->actif()
             ->where('date_echeance', '<', now())
             ->sum('montant_ttc');

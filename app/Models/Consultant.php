@@ -52,8 +52,10 @@ class Consultant extends Model
 
     public function missionsActives()
     {
-        return $this->missions()->whereNull('date_fin')
-            ->orWhere('date_fin', '>=', now());
+        return $this->missions()->where(function ($query) {
+            $query->whereNull('date_fin')
+                ->orWhere('date_fin', '>=', now());
+        });
     }
 
     // Accesseurs

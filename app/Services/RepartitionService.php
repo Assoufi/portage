@@ -11,6 +11,9 @@ class RepartitionService
     public function createRepartition(Paiement $paiement, array $data): Repartition
     {
         return DB::transaction(function () use ($paiement, $data) {
+            // Verrou pessimiste : sérialise les répartitions concurrentes sur ce paiement
+            $paiement = Paiement::whereKey($paiement->id)->lockForUpdate()->first();
+
             $data['paiement_id'] = $paiement->id;
 
             $dejaReparti = $paiement->repartitions()->sum('montant');
@@ -18,7 +21,7 @@ class RepartitionService
 
             if ($nouveauTotal > $paiement->montant) {
                 throw new \RuntimeException(
-                    "Le montant total des répartitions ($dejaReparti) + ce montant ({$data['montant']}) " .
+                    "Le montant total des répartitions ($dejaReparti) + ce montant ({$data['montant']}) ".
                     "dépasse le montant du paiement ({$paiement->montant})."
                 );
             }
@@ -30,7 +33,8 @@ class RepartitionService
     public function updateRepartition(Repartition $repartition, array $data): Repartition
     {
         return DB::transaction(function () use ($repartition, $data) {
-            $paiement = $repartition->paiement;
+            // Verrou pessimiste : sérialise les répartitions concurrentes sur ce paiement
+            $paiement = Paiement::whereKey($repartition->paiement_id)->lockForUpdate()->first();
 
             $dejaReparti = $paiement->repartitions()
                 ->where('id', '!=', $repartition->id)
@@ -40,12 +44,13 @@ class RepartitionService
 
             if ($nouveauTotal > $paiement->montant) {
                 throw new \RuntimeException(
-                    "Le montant total des répartitions ($dejaReparti) + ce montant ({$data['montant']}) " .
+                    "Le montant total des répartitions ($dejaReparti) + ce montant ({$data['montant']}) ".
                     "dépasse le montant du paiement ({$paiement->montant})."
                 );
             }
 
             $repartition->update($data);
+
             return $repartition->fresh();
         });
     }

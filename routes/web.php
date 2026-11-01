@@ -4,8 +4,9 @@
 
 use App\Http\Controllers\AttestationController;
 use App\Http\Controllers\ClientController;
-use App\Http\Controllers\ConsultantController;
 use App\Http\Controllers\CommandeController;
+use App\Http\Controllers\ConsultantController;
+use App\Http\Controllers\DatabaseScriptController;
 use App\Http\Controllers\DevisController;
 use App\Http\Controllers\FactureController;
 use App\Http\Controllers\FournisseurController;
@@ -94,6 +95,21 @@ Route::middleware(['auth'])->group(function () {
     Route::get('devis/{devis}/pdf', [DevisController::class, 'pdf'])
         ->name('devis.pdf');
     Route::resource('devis', DevisController::class)->parameters(['devis' => 'devis']);
+
+    // Routes pour l'exécution de scripts SQL (menu Documents > Database)
+    // Réservées aux administrateurs (Gate execute-scripts : is_admin).
+    Route::middleware('can:execute-scripts')->prefix('database')->group(function () {
+        Route::get('/', [DatabaseScriptController::class, 'index'])
+            ->name('database.index');
+        Route::post('preview', [DatabaseScriptController::class, 'preview'])
+            ->name('database.preview');
+        Route::get('{script}/confirmer', [DatabaseScriptController::class, 'confirm'])
+            ->name('database.confirm');
+        Route::post('{script}/executer', [DatabaseScriptController::class, 'execute'])
+            ->name('database.execute');
+        Route::get('{script}', [DatabaseScriptController::class, 'show'])
+            ->name('database.show');
+    });
 
     // Routes Stats
     Route::get('/stats/prestations-non-declarees', [StatsController::class, 'prestationsNonDeclarees'])

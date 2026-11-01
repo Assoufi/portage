@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Paiement;
 use App\Models\Repartition;
+use App\Support\NumeroRetry;
 use Illuminate\Support\Facades\DB;
 
 class PaiementService
@@ -11,11 +12,15 @@ class PaiementService
     public function createPaiement(array $data): Paiement
     {
         return DB::transaction(function () use ($data) {
-            if (!isset($data['reference'])) {
-                $data['reference'] = Paiement::genererReference();
+            // Référence saisie par l'utilisateur : la collision doit remonter telle quelle
+            if (! empty($data['reference'])) {
+                return Paiement::create($data);
             }
 
-            return Paiement::create($data);
+            return NumeroRetry::sauvegarder(
+                fn () => Paiement::genererReference(),
+                fn (string $reference) => Paiement::create(array_merge($data, ['reference' => $reference]))
+            );
         });
     }
 
@@ -23,6 +28,7 @@ class PaiementService
     {
         return DB::transaction(function () use ($paiement, $data) {
             $paiement->update($data);
+
             return $paiement->fresh();
         });
     }
@@ -41,6 +47,7 @@ class PaiementService
     public function getSoldeRestant(Paiement $paiement): float
     {
         $totalReparti = $paiement->repartitions()->sum('montant');
+
         return $paiement->montant - $totalReparti;
     }
 

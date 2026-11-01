@@ -90,7 +90,7 @@
                     <div class="flex items-center">
                         <x-dropdown align="left" width="w-56">
                             <x-slot name="trigger">
-                                <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none {{ request()->routeIs('attestations.*') || request()->routeIs('devis.*') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none {{ request()->routeIs('attestations.*') || request()->routeIs('devis.*') || request()->routeIs('database.*') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                                     <span>Documents</span>
                                     <svg class="fill-current h-4 w-4 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -107,6 +107,12 @@
                                                  class="{{ request()->routeIs('devis.*') ? 'bg-gray-100' : '' }}">
                                     Devis
                                 </x-dropdown-link>
+                                @if(auth()->user()?->is_admin)
+                                    <x-dropdown-link :href="route('database.index')"
+                                                     class="{{ request()->routeIs('database.*') ? 'bg-gray-100' : '' }}">
+                                        Database
+                                    </x-dropdown-link>
+                                @endif
                             </x-slot>
                         </x-dropdown>
                     </div>
@@ -216,7 +222,7 @@
             <!-- Sous-menu Documents responsive -->
             <div x-data="{ documentsOpen: false }" @click.outside="documentsOpen = false" @keydown.escape.stop="documentsOpen = false">
                 <button @click="documentsOpen = !documentsOpen"
-                        class="w-full flex items-center justify-between px-4 py-2 text-base font-medium {{ request()->routeIs('attestations.*') || request()->routeIs('devis.*') ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700' }} hover:bg-gray-100 focus:outline-none transition duration-150">
+                        class="w-full flex items-center justify-between px-4 py-2 text-base font-medium {{ request()->routeIs('attestations.*') || request()->routeIs('devis.*') || request()->routeIs('database.*') ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700' }} hover:bg-gray-100 focus:outline-none transition duration-150">
                     <span>Documents</span>
                     <svg class="w-4 h-4 transition-transform" :class="{'rotate-180': documentsOpen}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -229,6 +235,11 @@
                     <x-responsive-nav-link :href="route('devis.index')" :active="request()->routeIs('devis.*')">
                         Devis
                     </x-responsive-nav-link>
+                    @if(auth()->user()?->is_admin)
+                        <x-responsive-nav-link :href="route('database.index')" :active="request()->routeIs('database.*')">
+                            Database
+                        </x-responsive-nav-link>
+                    @endif
                 </div>
             </div>
         </div>

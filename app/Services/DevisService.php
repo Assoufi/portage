@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Devis;
+use App\Support\NumeroRetry;
 use Illuminate\Support\Facades\DB;
 
 class DevisService
@@ -10,13 +11,15 @@ class DevisService
     public function createDevis(array $data): Devis
     {
         return DB::transaction(function () use ($data) {
-            if (empty($data['numero_devis'])) {
-                $data['numero_devis'] = Devis::genererNumeroDevis();
+            // Numéro saisi par l'utilisateur : la collision doit remonter telle quelle
+            if (! empty($data['numero_devis'])) {
+                return Devis::create($data)->fresh();
             }
 
-            $devis = Devis::create($data);
-
-            return $devis->fresh();
+            return NumeroRetry::sauvegarder(
+                fn () => Devis::genererNumeroDevis(),
+                fn (string $numeroDevis) => Devis::create(array_merge($data, ['numero_devis' => $numeroDevis]))->fresh()
+            );
         });
     }
 
