@@ -40,7 +40,9 @@ class FactureRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('factures', 'numero_facture')->ignore($facture?->id),
+                Rule::unique('factures', 'numero_facture')
+                    ->ignore($facture?->id)
+                    ->where(fn ($query) => $query->where('fournisseur_id', $this->input('fournisseur_id'))),
             ],
             'numero_bcm' => [
                 'nullable',
@@ -166,37 +168,37 @@ class FactureRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'fournisseur_id.required'   => 'Le fournisseur est obligatoire.',
-            'fournisseur_id.exists'     => 'Le fournisseur sélectionné n\'existe pas ou est inactif.',
-            'client_id.required'        => 'Le client est obligatoire.',
-            'client_id.exists'          => 'Le client sélectionné n\'existe pas ou est inactif.',
-            'numero_facture.required'   => 'Le numéro de facture est obligatoire.',
-            'numero_facture.unique'     => 'Ce numéro de facture est déjà utilisé.',
-            'numero_facture.max'        => 'Le numéro de facture ne doit pas dépasser 50 caractères.',
-            'date_facture.required'     => 'La date de facture est obligatoire.',
-            'date_facture.date'         => 'La date de facture doit être une date valide.',
+            'fournisseur_id.required' => 'Le fournisseur est obligatoire.',
+            'fournisseur_id.exists' => 'Le fournisseur sélectionné n\'existe pas ou est inactif.',
+            'client_id.required' => 'Le client est obligatoire.',
+            'client_id.exists' => 'Le client sélectionné n\'existe pas ou est inactif.',
+            'numero_facture.required' => 'Le numéro de facture est obligatoire.',
+            'numero_facture.unique' => 'Ce numéro de facture est déjà utilisé.',
+            'numero_facture.max' => 'Le numéro de facture ne doit pas dépasser 50 caractères.',
+            'date_facture.required' => 'La date de facture est obligatoire.',
+            'date_facture.date' => 'La date de facture doit être une date valide.',
             'montant_ttc.required' => 'Le montant est obligatoire.',
-            'montant_ttc.numeric'  => 'Le montant doit être un nombre.',
-            'montant_ttc.min'      => 'Le montant doit être supérieur à 0.',
-            'montant_ttc.max'      => 'Le montant ne peut pas dépasser 99 999 999.99.',
+            'montant_ttc.numeric' => 'Le montant doit être un nombre.',
+            'montant_ttc.min' => 'Le montant doit être supérieur à 0.',
+            'montant_ttc.max' => 'Le montant ne peut pas dépasser 99 999 999.99.',
             'date_echeance.after_or_equal' => 'La date d\'échéance doit être postérieure ou égale à la date de facture.',
-            'remarques.max'             => 'Les remarques ne doivent pas dépasser 5000 caractères.',
+            'remarques.max' => 'Les remarques ne doivent pas dépasser 5000 caractères.',
             'details.*.designation.required' => 'La désignation de chaque ligne est obligatoire.',
-            'details.*.quantite.required'    => 'La quantité de chaque ligne est obligatoire.',
-            'details.*.quantite.min'         => 'La quantité doit être supérieure à 0.',
+            'details.*.quantite.required' => 'La quantité de chaque ligne est obligatoire.',
+            'details.*.quantite.min' => 'La quantité doit être supérieure à 0.',
             'details.*.prix_unitaire.required' => 'Le prix unitaire de chaque ligne est obligatoire.',
-            'details.*.prix_unitaire.min'      => 'Le prix unitaire doit être positif.',
+            'details.*.prix_unitaire.min' => 'Le prix unitaire doit être positif.',
         ];
     }
 
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'montant_ttc'   => floatval($this->montant_ttc),
-            'total_ht'      => $this->total_ht ? floatval($this->total_ht) : null,
+            'montant_ttc' => floatval($this->montant_ttc),
+            'total_ht' => $this->total_ht ? floatval($this->total_ht) : null,
             'prix_unitaire' => $this->prix_unitaire ? floatval($this->prix_unitaire) : null,
-            'taux_tva'      => $this->taux_tva ? floatval($this->taux_tva) : null,
-            'quantite'      => $this->quantite ? intval($this->quantite) : null,
+            'taux_tva' => $this->taux_tva ? floatval($this->taux_tva) : null,
+            'quantite' => $this->quantite ? intval($this->quantite) : null,
         ]);
     }
 }

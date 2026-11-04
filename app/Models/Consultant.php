@@ -84,7 +84,8 @@ class Consultant extends Model
     // Mutateurs
     public function setEmailAttribute($value)
     {
-        $this->attributes['email'] = strtolower(trim($value));
+        $value = trim((string) $value);
+        $this->attributes['email'] = $value === '' ? null : strtolower($value);
     }
 
     public function setNomAttribute($value)

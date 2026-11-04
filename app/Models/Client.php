@@ -31,6 +31,7 @@ class Client extends Model
         'notifycc',
         'adresse_facturation',
         'delai_paiement',
+        'mode_paiement',
         'remarques',
     ];
 

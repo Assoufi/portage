@@ -48,7 +48,7 @@ Frontend: `tailwindcss` 3 (+ `@tailwindcss/forms`), `alpinejs` 3 (+ plugins focu
 | fournisseurs | partner companies (ice unique 15 chars, rib/IBAN, taux) |
 | missions | links consultant/client/fournisseur (tjm, prix_vente, delai_paiement = 30 days) |
 | commandes | orders attached to a mission (unique num_commande, statut default 'ACTIF') — fournisseur is derived from the mission, not stored |
-| factures | invoices (fournisseur_id, client_id, mission_id, consultant_id, unique numero_facture, amounts) |
+| factures | invoices (fournisseur_id, client_id, mission_id, consultant_id, numero_facture indexed but NOT unique, amounts) |
 | detail_factures | invoice line items (cascade delete with facture) |
 | paiements | client payments (client_id, fournisseur_id, nullable mission_id, unique reference) |
 | repartitions | distribution of a paiement to consultants (paiement_id + consultant_id) |
@@ -89,11 +89,21 @@ npm run dev / npm run build  # Vite assets
 
 Tests live in `tests/Unit` (model logic: Devis, Commande, Client, Attestation, MontantEnLettres) and `tests/Feature` (controllers: Facture, Devis, Commande, Client, Fournisseur, Attestation, Missions duplicate, auth). Feature tests run against the MySQL database `portage_test` (see `phpunit.xml`); mail/queue/cache/session drivers are replaced with inert drivers in tests.
 
+## Destructive Database Commands — HARD PROHIBITION (2026-11-02 incident)
+
+On 2026-11-02, running `php artisan migrate:fresh` against the default `.env` database (`portage`, the real dev/production data) erased every table. This type of command is **absolutely forbidden** from now on:
+
+- **NEVER run** `migrate:fresh`, `migrate:refresh`, `db:wipe`, `drop-all-tables`, raw `DROP DATABASE/TABLE`, or `TRUNCATE` — on ANY database, under any circumstance, even "to reproduce a test issue" or "for verification".
+- Migrations may **only ever be** applied forward (`php artisan migrate`) on `portage`, and reverse (`migrate:rollback --step=1`) only with the user's explicit prior approval.
+- The **only** database allowed to be recreated (fresh/rebuilt) is `portage_test`, and only explicitly through `phpunit.xml` / `--env=testing` — never rely on defaults.
+- Before running any migration on `portage`: take a `mysqldump` first (save to a different volume, e.g. `D:\backups-portage\`), and report its file path.
+- Any command that could destroy data must be announced to the user and approved before execution — no exceptions, regardless of deadlines or convenience.
+
 ## Business Constraints
 
 - **ICE**: exactly 15 characters, unique, on both clients and fournisseurs; a uniqueness pre-check endpoint exists (`clients/check-identification`).
 - **TVA** defaults to 20%, **devise** to MAD; all amounts are `decimal(12,2)`.
-- **Invoice numbering**: format `yyyy-ddd`, counter **per fournisseur**, unique — soft-deleted rows are included in the counter because of the UNIQUE constraint.
+- **Invoice numbering**: format `yyyy-ddd`, counter **per fournisseur** (`Facture::genererNumeroFacturePourFournisseur()`, max+1, soft-deleted rows included). No DB UNIQUE on `numero_facture` (2026-11-04): fournisseurs genuinely reuse numbers (91 duplicate pairs in legacy imports across 55+ collisions), so uniqueness is enforced at application level only — `FactureRequest` blocks a duplicate number for the same fournisseur on manual/create-entry.
 - **Date validation**: `date_fin >= date_debut` is enforced in application logic (`Mission::validateDates`), not at DB level.
 - **Payment terms**: mission `delai_paiement` defaults to 30 days, computed from `date_fin`.
 - **No hard deletes**: restrictive FKs + SoftDeletes preserve history; rows are disabled/inactivated via the boolean `statut` flag instead of removed.

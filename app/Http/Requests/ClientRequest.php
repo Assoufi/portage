@@ -76,6 +76,10 @@ class ClientRequest extends FormRequest
                 'min:0',
                 'max:365',
             ],
+            'mode_paiement' => [
+                'nullable',
+                Rule::in(['virement', 'cheque', 'especes']),
+            ],
             'remarques' => [
                 'nullable',
                 'string',
@@ -162,6 +166,8 @@ class ClientRequest extends FormRequest
             'delai_paiement.integer' => 'Le délai de paiement doit être un nombre entier de jours.',
             'delai_paiement.min' => 'Le délai de paiement ne peut pas être négatif.',
             'delai_paiement.max' => 'Le délai de paiement ne peut pas dépasser 365 jours.',
+
+            'mode_paiement.in' => 'Le mode de paiement doit être « Virement », « Chèque » ou « Espèces ».',
 
             'remarques.max' => 'Les remarques ne doivent pas dépasser 2000 caractères.',
 

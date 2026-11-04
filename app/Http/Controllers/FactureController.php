@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Facture;
-use App\Models\Client;
-use App\Models\Fournisseur;
-use App\Models\Consultant;
-use App\Models\Mission;
-use App\Http\Requests\FactureRequest;
 use App\Exports\FacturesExport;
+use App\Http\Requests\FactureRequest;
 use App\Mail\FactureLivraison;
+use App\Models\Client;
+use App\Models\Consultant;
+use App\Models\Facture;
+use App\Models\Fournisseur;
+use App\Models\Mission;
 use App\Services\FactureService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 
 class FactureController extends Controller
@@ -25,7 +27,7 @@ class FactureController extends Controller
     {
         $query = $this->buildIndexQuery($request);
 
-        $factures    = $query->paginate(15)->withQueryString();
+        $factures = $query->paginate(15)->withQueryString();
         $clientSelectionne = $request->filled('client_id')
             ? Client::find($request->client_id)
             : null;
@@ -33,7 +35,7 @@ class FactureController extends Controller
         $consultantSelectionne = $request->filled('consultant_id')
             ? Consultant::find($request->consultant_id)
             : null;
-        $stats       = $this->factureService->getStats();
+        $stats = $this->factureService->getStats();
 
         return view('factures.index', compact('factures', 'clientSelectionne', 'fournisseurs', 'consultantSelectionne', 'stats'));
     }
@@ -42,7 +44,7 @@ class FactureController extends Controller
      * Construction de la requête de liste des factures,
      * partagée entre l'affichage (index) et l'export Excel.
      */
-    private function buildIndexQuery(Request $request): \Illuminate\Database\Eloquent\Builder
+    private function buildIndexQuery(Request $request): Builder
     {
         $query = Facture::query();
         if ($request->filled('client_id')) {
@@ -58,7 +60,7 @@ class FactureController extends Controller
         }
 
         if ($request->filled('numero_facture')) {
-            $query->where('numero_facture', 'LIKE', '%' . $request->numero_facture . '%');
+            $query->where('numero_facture', 'LIKE', '%'.$request->numero_facture.'%');
         }
 
         if ($request->filled('facture_reglee')) {
@@ -79,11 +81,11 @@ class FactureController extends Controller
 
         if ($request->filled('statut')) {
             match ($request->statut) {
-                'reglee'    => $query->reglee(),
-                'en_attente'=> $query->nonReglee()->actif(),
+                'reglee' => $query->reglee(),
+                'en_attente' => $query->nonReglee()->actif(),
                 'en_retard' => $query->nonReglee()->actif()->where('date_echeance', '<', now()),
-                'inactive'  => $query->where('statut', false),
-                default     => null,
+                'inactive' => $query->where('statut', false),
+                default => null,
             };
         }
 
@@ -103,7 +105,7 @@ class FactureController extends Controller
             $query->recherche($request->recherche);
         }
 
-        $sort      = $request->get('sort', 'date_facture');
+        $sort = $request->get('sort', 'date_facture');
         $direction = $request->get('direction', 'desc');
         $query->orderBy($sort, $direction);
 
@@ -117,7 +119,7 @@ class FactureController extends Controller
     {
         $query = $this->buildIndexQuery($request);
 
-        return Excel::download(new FacturesExport($query), 'factures-' . now()->format('Y-m-d') . '.xlsx');
+        return Excel::download(new FacturesExport($query), 'factures-'.now()->format('Y-m-d').'.xlsx');
     }
 
     /**
@@ -132,26 +134,26 @@ class FactureController extends Controller
             $request->validate([
                 'fichier' => 'required|file|mimes:xlsx,xls|max:20480',
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return redirect()->route('factures.index')
                 ->withErrors($e->errors())
-                ->with('error', 'Import Excel : ' . ($e->errors()['fichier'][0] ?? 'fichier invalide (xlsx/xls, 20 Mo max).'));
+                ->with('error', 'Import Excel : '.($e->errors()['fichier'][0] ?? 'fichier invalide (xlsx/xls, 20 Mo max).'));
         }
 
         $fichier = $request->file('fichier');
         $nomOriginal = preg_replace('/[\\\\\/:*?"<>|]/', '_', $fichier->getClientOriginalName());
-        $nom = now()->format('Ymd_His') . '_' . $nomOriginal;
+        $nom = now()->format('Ymd_His').'_'.$nomOriginal;
         $directory = storage_path('app/imports/factures');
         \File::ensureDirectoryExists($directory);
         $fichier->move($directory, $nom);
-        $chemin = 'imports/factures/' . $nom;
+        $chemin = 'imports/factures/'.$nom;
 
         try {
             $code = \Artisan::call('factures:importer', ['--file' => $chemin, '--execute' => true]);
             $rapport = \Artisan::output();
         } catch (\Throwable $e) {
             $code = 1;
-            $rapport = 'Erreur : ' . $e->getMessage();
+            $rapport = 'Erreur : '.$e->getMessage();
         }
 
         $success = $code === 0;
@@ -166,11 +168,13 @@ class FactureController extends Controller
 
     public function create(Request $request)
     {
-        $facture     = new Facture();
-        $clients     = Client::actif()->orderBy('nom')->get();
+        $facture = new Facture;
+        $clients = Client::actif()->orderBy('nom')->get();
         $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
-        $consultants  = Consultant::actif()->orderBy('nom')->get();
-        $missions     = Mission::orderBy('date_debut', 'desc')->get();
+        $consultants = Consultant::actif()->orderBy('nom')->get();
+        // Eager loading pour afficher les data-attributes (fournisseur, client,
+        // consultant, délai et mode de paiement du client) sur les options Mission.
+        $missions = Mission::with(['client', 'fournisseur', 'consultant'])->orderBy('date_debut', 'desc')->get();
 
         $clone = null;
         $cloneDetails = collect();
@@ -180,23 +184,23 @@ class FactureController extends Controller
 
             if ($source) {
                 $clone = [
-                    'mission_id'     => $source->mission_id,
+                    'mission_id' => $source->mission_id,
                     'fournisseur_id' => $source->fournisseur_id,
-                    'client_id'      => $source->client_id,
-                    'consultant_id'  => $source->consultant_id,
-                    'numero_bcm'     => $source->numero_bcm,
-                    'date_facture'   => $source->date_facture?->format('Y-m-d'),
-                    'date_echeance'  => $source->date_echeance?->format('Y-m-d'),
+                    'client_id' => $source->client_id,
+                    'consultant_id' => $source->consultant_id,
+                    'numero_bcm' => $source->numero_bcm,
+                    'date_facture' => $source->date_facture?->format('Y-m-d'),
+                    'date_echeance' => $source->date_echeance?->format('Y-m-d'),
                     'date_reception' => $source->date_reception?->format('Y-m-d'),
-                    'periode'        => $source->periode?->format('Y-m'),
-                    'beneficiaire'   => $source->beneficiaire,
-                    'remarques'      => $source->remarques,
-                    'taux_tva'       => $source->taux_tva,
+                    'periode' => $source->periode?->format('Y-m'),
+                    'beneficiaire' => $source->beneficiaire,
+                    'remarques' => $source->remarques,
+                    'taux_tva' => $source->taux_tva,
                 ];
 
                 $cloneDetails = $source->details->map(fn ($d) => [
-                    'designation'   => $d->designation,
-                    'quantite'      => $d->quantite,
+                    'designation' => $d->designation,
+                    'quantite' => $d->quantite,
                     'prix_unitaire' => $d->prix_unitaire,
                 ])->values();
             }
@@ -239,7 +243,7 @@ class FactureController extends Controller
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Erreur lors de la création de la facture : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la création de la facture : '.$e->getMessage());
         }
     }
 
@@ -277,10 +281,10 @@ class FactureController extends Controller
         $facture->loadMissing(['client', 'fournisseur', 'consultant', 'details']);
 
         return Pdf::loadView('factures.pdf', [
-                'facture'     => $facture,
-                'fournisseur' => $facture->fournisseur,
-                'signe'       => $signe,
-            ])
+            'facture' => $facture,
+            'fournisseur' => $facture->fournisseur,
+            'signe' => $signe,
+        ])
             ->setPaper('a4')
             ->output();
     }
@@ -295,7 +299,7 @@ class FactureController extends Controller
     public function dispatcher(Request $request)
     {
         $validated = $request->validate([
-            'facture_ids'   => 'required|array|max:100',
+            'facture_ids' => 'required|array|max:100',
             'facture_ids.*' => 'integer|exists:factures,id',
         ]);
 
@@ -303,8 +307,8 @@ class FactureController extends Controller
 
         $this->nettoyerDispatchesAniens();
 
-        $token = now()->format('Ymd_His') . '_' . \Str::lower(\Str::random(8));
-        $directory = storage_path('app/dispatches/' . $token);
+        $token = now()->format('Ymd_His').'_'.\Str::lower(\Str::random(8));
+        $directory = storage_path('app/dispatches/'.$token);
         \File::ensureDirectoryExists($directory);
 
         $factures = Facture::with(['client', 'fournisseur', 'consultant', 'details'])
@@ -313,27 +317,28 @@ class FactureController extends Controller
             ->get();
 
         $stats = [
-            'papier'      => 0,
-            'email'       => 0,
-            'whatsapp'    => 0,
-            'sans_mode'   => 0,
+            'papier' => 0,
+            'email' => 0,
+            'whatsapp' => 0,
+            'sans_mode' => 0,
         ];
-        $erreurs   = [];
-        $whatsapp  = [];
+        $erreurs = [];
+        $whatsapp = [];
         $fichiersPapier = []; // [chemin => nom de fichier dans le ZIP]
         $fichiersDejaGeneres = []; // facture_id => chemin (évite les doublons si Papier + Email)
 
         foreach ($factures as $facture) {
             $client = $facture->client;
-            $modes  = collect($client?->mode_livraison ?? []);
+            $modes = collect($client?->mode_livraison ?? []);
 
             if ($modes->isEmpty()) {
                 $stats['sans_mode']++;
                 $erreurs[] = [
                     'numero_facture' => $facture->numero_facture,
-                    'message'        => 'Aucun mode de livraison défini pour le client '
-                        . ($client?->nom ?? '—') . '.',
+                    'message' => 'Aucun mode de livraison défini pour le client '
+                        .($client?->nom ?? '—').'.',
                 ];
+
                 continue;
             }
 
@@ -341,18 +346,18 @@ class FactureController extends Controller
                 try {
                     match ($mode) {
                         'Papier' => $this->dispatcherPapier($facture, $directory, $stats, $fichiersPapier, $fichiersDejaGeneres),
-                        'Email'  => $this->dispatcherEmail($facture, $stats, $erreurs),
+                        'Email' => $this->dispatcherEmail($facture, $stats, $erreurs),
                         'Whatsapp' => $this->dispatcherWhatsapp($facture, $stats, $whatsapp, $erreurs),
                         default => $erreurs[] = [
                             'numero_facture' => $facture->numero_facture,
-                            'message'        => "Mode de livraison inconnu : {$mode}.",
+                            'message' => "Mode de livraison inconnu : {$mode}.",
                         ],
                     };
                 } catch (\Throwable $e) {
-                    \Log::error("Dispatcher facture {$facture->numero_facture} ({$mode}) : " . $e->getMessage());
+                    \Log::error("Dispatcher facture {$facture->numero_facture} ({$mode}) : ".$e->getMessage());
                     $erreurs[] = [
                         'numero_facture' => $facture->numero_facture,
-                        'message'        => "Erreur lors de l'envoi ({$mode}) : " . $e->getMessage(),
+                        'message' => "Erreur lors de l'envoi ({$mode}) : ".$e->getMessage(),
                     ];
                 }
             }
@@ -360,16 +365,16 @@ class FactureController extends Controller
 
         $zipToken = null;
         if ($fichiersPapier !== []) {
-            $zipToken = 'factures-papier-' . $token . '.zip';
-            $this->compresser($directory, $fichiersPapier, storage_path('app/dispatches/' . $zipToken));
+            $zipToken = 'factures-papier-'.$token.'.zip';
+            $this->compresser($directory, $fichiersPapier, storage_path('app/dispatches/'.$zipToken));
         }
 
         return response()->json([
-            'success'  => true,
-            'stats'    => $stats,
-            'zip_url'  => $zipToken !== null ? route('factures.dispatcher-telecharger', $token) : null,
+            'success' => true,
+            'stats' => $stats,
+            'zip_url' => $zipToken !== null ? route('factures.dispatcher-telecharger', $token) : null,
             'whatsapp' => $whatsapp,
-            'erreurs'  => $erreurs,
+            'erreurs' => $erreurs,
         ]);
     }
 
@@ -379,8 +384,8 @@ class FactureController extends Controller
     private function dispatcherPapier(Facture $facture, string $directory, array &$stats, array &$fichiersPapier, array &$fichiersDejaGeneres): void
     {
         if (! isset($fichiersDejaGeneres[$facture->id])) {
-            $nom = 'facture-' . $facture->numero_facture . '.pdf';
-            $chemin = $directory . DIRECTORY_SEPARATOR . $nom;
+            $nom = 'facture-'.$facture->numero_facture.'.pdf';
+            $chemin = $directory.DIRECTORY_SEPARATOR.$nom;
 
             \File::put($chemin, $this->genererPdf($facture, false));
 
@@ -397,14 +402,15 @@ class FactureController extends Controller
     private function dispatcherEmail(Facture $facture, array &$stats, array &$erreurs): void
     {
         $destinataires = $this->destinatairesPropres($facture->client?->notifyto);
-        $copie         = $this->destinatairesPropres($facture->client?->notifycc);
+        $copie = $this->destinatairesPropres($facture->client?->notifycc);
 
         if ($destinataires === []) {
             $erreurs[] = [
                 'numero_facture' => $facture->numero_facture,
-                'message'        => 'Mode Email : aucun destinataire (notifyto) pour le client '
-                    . ($facture->client?->nom ?? '—') . '.',
+                'message' => 'Mode Email : aucun destinataire (notifyto) pour le client '
+                    .($facture->client?->nom ?? '—').'.',
             ];
+
             return;
         }
 
@@ -427,17 +433,18 @@ class FactureController extends Controller
         if ($telephone === null) {
             $erreurs[] = [
                 'numero_facture' => $facture->numero_facture,
-                'message'        => 'Mode Whatsapp : numéro de téléphone manquant pour le client '
-                    . ($facture->client?->nom ?? '—') . '.',
+                'message' => 'Mode Whatsapp : numéro de téléphone manquant pour le client '
+                    .($facture->client?->nom ?? '—').'.',
             ];
+
             return;
         }
 
         $whatsapp[] = [
             'numero_facture' => $facture->numero_facture,
-            'client'         => $facture->client->nom,
-            'telephone'      => $telephone,
-            'url'            => 'https://wa.me/' . $telephone,
+            'client' => $facture->client->nom,
+            'telephone' => $telephone,
+            'url' => 'https://wa.me/'.$telephone,
         ];
         $stats['whatsapp']++;
     }
@@ -475,7 +482,7 @@ class FactureController extends Controller
      */
     private function compresser(string $directory, array $fichiersPapier, string $zipPath): void
     {
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
 
         if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
             throw new \Exception('Impossible de créer le fichier ZIP des factures Papier.');
@@ -502,7 +509,7 @@ class FactureController extends Controller
             return;
         }
 
-        foreach (glob($repertoire . DIRECTORY_SEPARATOR . '*') ?: [] as $fichier) {
+        foreach (glob($repertoire.DIRECTORY_SEPARATOR.'*') ?: [] as $fichier) {
             if (filemtime($fichier) < now()->subDay()->getTimestamp()) {
                 @unlink($fichier);
             }
@@ -519,27 +526,29 @@ class FactureController extends Controller
             abort(404);
         }
 
-        $chemin = storage_path('app/dispatches/factures-papier-' . $token . '.zip');
+        $chemin = storage_path('app/dispatches/factures-papier-'.$token.'.zip');
 
         if (! is_file($chemin)) {
             abort(404, 'Livrable introuvable (expiré ou déjà téléchargé).');
         }
 
-        return response()->download($chemin, 'factures-papier-' . $token . '.zip')->deleteFileAfterSend(true);
+        return response()->download($chemin, 'factures-papier-'.$token.'.zip')->deleteFileAfterSend(true);
     }
 
     public function edit(Facture $facture)
     {
-        $clients      = Client::actif()->orderBy('nom')->get();
+        $clients = Client::actif()->orderBy('nom')->get();
         $fournisseurs = Fournisseur::actif()->orderBy('nom')->get();
-        $consultants  = Consultant::actif()->orderBy('nom')->get();
-        $missions     = Mission::orderBy('date_debut', 'desc')->get();
+        $consultants = Consultant::actif()->orderBy('nom')->get();
+        // Eager loading pour afficher les data-attributes (fournisseur, client,
+        // consultant, délai et mode de paiement du client) sur les options Mission.
+        $missions = Mission::with(['client', 'fournisseur', 'consultant'])->orderBy('date_debut', 'desc')->get();
 
-        $detailsJson = $facture->details->map(fn($d) => [
-            'designation'  => $d->designation,
-            'quantite'     => $d->quantite,
+        $detailsJson = $facture->details->map(fn ($d) => [
+            'designation' => $d->designation,
+            'quantite' => $d->quantite,
             'prix_unitaire' => $d->prix_unitaire,
-            'montant_ht'   => $d->montant_ht,
+            'montant_ht' => $d->montant_ht,
         ])->values()->toJson();
 
         return view('factures.edit', compact('facture', 'clients', 'fournisseurs', 'consultants', 'missions', 'detailsJson'));
@@ -557,7 +566,7 @@ class FactureController extends Controller
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Erreur lors de la mise à jour de la facture : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la mise à jour de la facture : '.$e->getMessage());
         }
     }
 
@@ -580,7 +589,7 @@ class FactureController extends Controller
         } catch (\Exception $e) {
             return redirect()
                 ->back()
-                ->with('error', 'Erreur lors de la suppression de la facture : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la suppression de la facture : '.$e->getMessage());
         }
     }
 
@@ -588,8 +597,8 @@ class FactureController extends Controller
     {
         try {
             $validated = $request->validate([
-                'date_reglement'      => 'required|date',
-                'mode_reglement'      => 'nullable|string|max:50',
+                'date_reglement' => 'required|date',
+                'mode_reglement' => 'nullable|string|max:50',
                 'reference_reglement' => 'nullable|string|max:100',
             ]);
 
@@ -601,7 +610,7 @@ class FactureController extends Controller
         } catch (\Exception $e) {
             return redirect()
                 ->back()
-                ->with('error', 'Erreur lors du règlement de la facture : ' . $e->getMessage());
+                ->with('error', 'Erreur lors du règlement de la facture : '.$e->getMessage());
         }
     }
 

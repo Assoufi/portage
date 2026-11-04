@@ -37,7 +37,7 @@ class ConsultantRequest extends FormRequest
                 'max:50',
             ],
             'email' => [
-                'required',
+                'nullable',
                 'email',
                 'max:255',
                 'unique:consultants,email,'.$consultantId,
@@ -75,9 +75,8 @@ class ConsultantRequest extends FormRequest
             'nom.regex' => 'Le nom ne doit contenir que des lettres, espaces, tirets et apostrophes.',
 
             'email.required' => 'L\'adresse email est obligatoire.',
-            'email.email' => 'Veuillez saisir une adresse email valide.',
             'email.unique' => 'Cette adresse email est déjà utilisée.',
-            'email.regex' => 'Veuillez saisir une adresse email valide.',
+            'email.email' => 'Veuillez saisir une adresse email valide.',
 
             'tel.required' => 'Le numéro de téléphone est obligatoire.',
             'tel.regex' => 'Veuillez saisir un numéro de téléphone valide.',
@@ -115,7 +114,7 @@ class ConsultantRequest extends FormRequest
     {
         // Nettoyer les données avant validation
         $this->merge([
-            'email' => strtolower(trim($this->email)),
+            'email' => $this->email !== null ? strtolower(trim($this->email)) : null,
             'nom' => ucwords(strtolower(trim($this->nom))),
             'tel' => preg_replace('/\s+/', '', $this->tel),
             'cin' => $this->cin ? strtoupper(preg_replace('/\s+/', '', $this->cin)) : null,

@@ -114,7 +114,7 @@
                     @forelse($missions as $mission)
                         <tr class="hover:bg-gray-50 transition duration-150">                            
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{ $mission->consultant->nom }}</div>
+                                <div class="text-sm font-medium text-gray-900">{{ $mission->consultant?->nom ?? '—' }}</div>
                                 <div class="text-sm text-gray-500">{{ $mission->titre ?: 'Mission #' . $mission->id }}</div>
                             </td>                            
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -135,7 +135,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900">
-                                    {{ number_format($mission->prix_vente, 2) }} {{ $mission->client->devise }}
+                                    {{ number_format($mission->prix_vente, 2) }} {{ $mission->client?->devise ?? '—' }}
                                 </div>
                                 <div class="text-sm text-gray-500">
                                     TJM: {{ number_format($mission->tjm, 2) }}

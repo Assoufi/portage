@@ -1,34 +1,39 @@
 <?php
+
 // app/Http/Controllers/MissionController.php
 
 namespace App\Http\Controllers;
 
-use App\Models\Mission;
-use App\Models\Consultant;
-use App\Models\Client;
-use App\Models\Fournisseur;
 use App\Http\Requests\MissionRequest;
+use App\Models\Client;
+use App\Models\Consultant;
+use App\Models\Fournisseur;
+use App\Models\Mission;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class MissionController extends Controller
 {
     // Pas de constructeur avec authorizeResource pour l'instant
-    
+
     public function index(Request $request)
     {
-        $query = Mission::with(['consultant', 'client', 'fournisseur']);
+        $query = Mission::with([
+            'consultant' => fn ($q) => $q->withTrashed(),
+            'client' => fn ($q) => $q->withTrashed(),
+            'fournisseur' => fn ($q) => $q->withTrashed(),
+        ]);
 
         // Recherche générale multi-champs
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->whereHas('consultant', fn($q) => $q->recherche($search))
-                  ->orWhereHas('client', fn($q) => $q->recherche($search))
-                  ->orWhereHas('fournisseur', fn($q) => $q->recherche($search))
-                  ->orWhere('titre', 'LIKE', "%{$search}%")
-                  ->orWhere('formule', 'LIKE', "%{$search}%");
+                $q->whereHas('consultant', fn ($q) => $q->recherche($search))
+                    ->orWhereHas('client', fn ($q) => $q->recherche($search))
+                    ->orWhereHas('fournisseur', fn ($q) => $q->recherche($search))
+                    ->orWhere('titre', 'LIKE', "%{$search}%")
+                    ->orWhere('formule', 'LIKE', "%{$search}%");
             });
         }
 
@@ -36,7 +41,7 @@ class MissionController extends Controller
         if ($request->filled('consultant_id')) {
             $query->parConsultant($request->consultant_id);
         } elseif ($request->filled('consultant_nom')) {
-            $query->whereHas('consultant', fn($q) => $q->where('nom', 'LIKE', "%{$request->consultant_nom}%"));
+            $query->whereHas('consultant', fn ($q) => $q->where('nom', 'LIKE', "%{$request->consultant_nom}%"));
         }
 
         if ($request->filled('client_id')) {
@@ -69,16 +74,16 @@ class MissionController extends Controller
         $missions = $query->paginate(15)->withQueryString();
 
         // Uniquement les consultants/clients/fournisseurs ayant des missions en cours
-        $consultants = Consultant::whereHas('missions', fn($q) => $q->enCours())->orderBy('nom')->get();
-        $clients = Client::whereHas('missions', fn($q) => $q->enCours())->orderBy('nom')->get();
-        $fournisseurs = Fournisseur::whereHas('missions', fn($q) => $q->enCours())->orderBy('nom')->get();
+        $consultants = Consultant::whereHas('missions', fn ($q) => $q->enCours())->orderBy('nom')->get();
+        $clients = Client::whereHas('missions', fn ($q) => $q->enCours())->orderBy('nom')->get();
+        $fournisseurs = Fournisseur::whereHas('missions', fn ($q) => $q->enCours())->orderBy('nom')->get();
 
         return view('missions.index', compact('missions', 'consultants', 'clients', 'fournisseurs'));
     }
 
     public function create(Request $request)
     {
-        $mission = new Mission();
+        $mission = new Mission;
         $clone = null;
 
         if ($request->filled('clone')) {
@@ -110,34 +115,34 @@ class MissionController extends Controller
     {
         try {
             DB::beginTransaction();
-            
+
             $mission = Mission::create($request->validated());
-            
+
             DB::commit();
-            
+
             return redirect()
                 ->route('missions.index')
                 ->with('success', 'Mission créée avec succès.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Erreur lors de la création de la mission : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la création de la mission : '.$e->getMessage());
         }
     }
 
     public function show(Mission $mission)
     {
         $mission->load(['consultant', 'client', 'fournisseur']);
-        
+
         $duree = $mission->duree;
         $coutTotal = $mission->tjm * $mission->taux;
         $marge = $mission->prix_vente - $coutTotal;
         $margePourcentage = $coutTotal > 0 ? ($marge / $coutTotal) * 100 : 0;
-        
+
         return view('missions.show', compact('mission', 'duree', 'coutTotal', 'marge', 'margePourcentage'));
     }
 
@@ -154,22 +159,22 @@ class MissionController extends Controller
     {
         try {
             DB::beginTransaction();
-            
+
             $mission->update($request->validated());
-            
+
             DB::commit();
-            
+
             return redirect()
                 ->route('missions.index')
                 ->with('success', 'Mission mise à jour avec succès.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Erreur lors de la mise à jour de la mission : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la mise à jour de la mission : '.$e->getMessage());
         }
     }
 
@@ -177,21 +182,21 @@ class MissionController extends Controller
     {
         try {
             DB::beginTransaction();
-            
+
             $mission->delete();
-            
+
             DB::commit();
-            
+
             return redirect()
                 ->route('missions.index', $this->filtresCourants($request))
                 ->with('success', 'Mission supprimée avec succès.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()
                 ->back()
-                ->with('error', 'Erreur lors de la suppression de la mission : ' . $e->getMessage());
+                ->with('error', 'Erreur lors de la suppression de la mission : '.$e->getMessage());
         }
     }
 
@@ -200,14 +205,14 @@ class MissionController extends Controller
         $tjm = floatval($request->tjm);
         $taux = floatval($request->taux);
         $margeSouhaitee = floatval($request->marge_souhaitee ?? 20);
-        
+
         $coutTotal = $tjm * $taux;
         $prixVenteSuggere = $coutTotal * (1 + $margeSouhaitee / 100);
-        
+
         return response()->json([
             'cout_total' => $coutTotal,
             'prix_vente_suggere' => round($prixVenteSuggere, 2),
-            'marge' => round($prixVenteSuggere - $coutTotal, 2)
+            'marge' => round($prixVenteSuggere - $coutTotal, 2),
         ]);
     }
 
@@ -241,12 +246,12 @@ class MissionController extends Controller
             DB::raw('COUNT(*) as total'),
             DB::raw('SUM(prix_vente) as ca')
         )
-        ->whereYear('date_debut', '>=', Carbon::now()->subYear())
-        ->groupBy('annee', 'mois')
-        ->orderBy('annee', 'desc')
-        ->orderBy('mois', 'desc')
-        ->limit(12)
-        ->get();
+            ->whereYear('date_debut', '>=', Carbon::now()->subYear())
+            ->groupBy('annee', 'mois')
+            ->orderBy('annee', 'desc')
+            ->orderBy('mois', 'desc')
+            ->limit(12)
+            ->get();
 
         return view('missions.dashboard', compact('stats', 'topClients', 'topConsultants', 'evolution'));
     }

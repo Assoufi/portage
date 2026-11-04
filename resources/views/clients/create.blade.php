@@ -129,6 +129,23 @@
                                :class="errors.delai_paiement ? 'border-red-500' : 'border-gray-300'"
                                placeholder="Ex : 30">
                     </div>
+
+                    <!-- Mode de paiement -->
+                    <div>
+                        <label for="mode_paiement" class="block text-sm font-medium text-gray-700 mb-2">
+                            Mode de paiement
+                        </label>
+                        <select name="mode_paiement" id="mode_paiement" x-model="form.mode_paiement"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('mode_paiement') border-red-500 @enderror">
+                            <option value="">— Aucun —</option>
+                            <option value="virement">Virement</option>
+                            <option value="cheque">Chèque</option>
+                            <option value="especes">Espèces</option>
+                        </select>
+                        @error('mode_paiement')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
                     
                     <!-- Téléphone -->
                     <div>
@@ -270,6 +287,7 @@
                     statut: '{{ old('statut', '1') }}',
                     adresse_facturation: '{{ old('adresse_facturation', '') }}',
                     delai_paiement: '{{ old('delai_paiement', '') }}',
+                    mode_paiement: '{{ old('mode_paiement', 'virement') }}',
                     remarques: '{{ old('remarques', '') }}',
                     periodicite: '{{ old('periodicite', '') }}',
                     mode_livraison: @js(old('mode_livraison', [])),

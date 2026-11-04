@@ -17,6 +17,27 @@
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">Acteurs</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
+                        <label for="mission_id" class="block text-sm font-medium text-gray-700 mb-2">Mission</label>
+                        <select name="mission_id" id="mission_id"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('mission_id') border-red-500 @enderror">
+                            <option value="">Sélectionner une mission</option>
+                            @foreach($missions as $mission)
+                                <option value="{{ $mission->id }}" {{ old('mission_id', $clone['mission_id'] ?? '') == $mission->id ? 'selected' : '' }}
+                                        data-fournisseur-id="{{ $mission->fournisseur_id }}"
+                                        data-client-id="{{ $mission->client_id }}"
+                                        data-consultant-id="{{ $mission->consultant_id }}"
+                                        data-client-delai="{{ $mission->client?->delai_paiement ?? '' }}"
+                                        data-client-mode="{{ $mission->client?->mode_paiement ?? '' }}">
+                                    {{ $mission->titre }} — {{ $mission->client?->nom ?? 'N/A' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('mission_id')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
                         <label for="fournisseur_id" class="block text-sm font-medium text-gray-700 mb-2">Fournisseur *</label>
                         <select name="fournisseur_id" id="fournisseur_id"
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('fournisseur_id') border-red-500 @enderror"
@@ -40,7 +61,10 @@
                                 required>
                             <option value="">Sélectionner un client</option>
                             @foreach($clients as $client)
-                                <option value="{{ $client->id }}" {{ old('client_id', $clone['client_id'] ?? '') == $client->id ? 'selected' : '' }} data-tva="{{ $client->tva }}">
+                                <option value="{{ $client->id }}" {{ old('client_id', $clone['client_id'] ?? '') == $client->id ? 'selected' : '' }}
+                                        data-tva="{{ $client->tva }}"
+                                        data-delai="{{ $client->delai_paiement ?? '' }}"
+                                        data-mode="{{ $client->mode_paiement ?? '' }}">
                                     {{ $client->nom }}
                                 </option>
                             @endforeach
@@ -62,22 +86,6 @@
                             @endforeach
                         </select>
                         @error('consultant_id')
-                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label for="mission_id" class="block text-sm font-medium text-gray-700 mb-2">Mission</label>
-                        <select name="mission_id" id="mission_id"
-                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('mission_id') border-red-500 @enderror">
-                            <option value="">Sélectionner une mission</option>
-                            @foreach($missions as $mission)
-                                <option value="{{ $mission->id }}" {{ old('mission_id', $clone['mission_id'] ?? '') == $mission->id ? 'selected' : '' }}>
-                                    {{ $mission->titre }} — {{ $mission->client->nom ?? 'N/A' }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('mission_id')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
@@ -433,6 +441,10 @@ class="w-28 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:rin
                     tvaRateDisplay.textContent = formatNumber(tva);
                     recalculateTotals();
                 }
+                // Mode de règlement pré-rempli depuis le mode de paiement du client
+                appliquerModeReglement(selectedOption.getAttribute('data-mode'));
+                // Échéance recalculée depuis le délai de paiement du client
+                updateEcheance();
             });
 
             const fournisseurSelect = document.getElementById('fournisseur_id');
@@ -457,6 +469,134 @@ class="w-28 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:rin
             fournisseurSelect.addEventListener('change', function() {
                 fetchNumeroSuivant(this.value);
             });
+
+            const missionSelect = document.getElementById('mission_id');
+            const consultantSelect = document.getElementById('consultant_id');
+            const dateFactureInput = document.getElementById('date_facture');
+            const dateEcheanceInput = document.getElementById('date_echeance');
+            const modeReglementSelect = document.getElementById('mode_reglement');
+
+            // Correspondance entre le mode de paiement du client (enum)
+            // et les libellés du mode de règlement de la facture.
+            const modesReglementParClient = {
+                virement: 'Virement bancaire',
+                cheque: 'Chèque',
+                especes: 'Espèces',
+            };
+            // Classes appliquées aux selects verrouillés par la mission.
+            const classesVerrouillees = ['bg-gray-100', 'text-gray-500', 'cursor-not-allowed'];
+
+            // Recalcule la date d'échéance = date de facture + délai de paiement
+            // du client sélectionné (fallback 60 jours si délai non renseigné).
+            function updateEcheance() {
+                if (!dateFactureInput.value) {
+                    return;
+                }
+                const clientOption = clientSelect.options[clientSelect.selectedIndex] ?? null;
+                const delai = clientOption ? clientOption.getAttribute('data-delai') : '';
+                const jours = (delai !== '' && delai !== null && !isNaN(parseInt(delai, 10))) ? parseInt(delai, 10) : 60;
+                const [annee, mois, jour] = dateFactureInput.value.split('-').map(Number);
+                const echeance = new Date(annee, mois - 1, jour);
+                echeance.setDate(echeance.getDate() + jours);
+                const pad = (n) => String(n).padStart(2, '0');
+                dateEcheanceInput.value = echeance.getFullYear() + '-' + pad(echeance.getMonth() + 1) + '-' + pad(echeance.getDate());
+            }
+
+            // Pré-sélectionne le mode de règlement selon le mode de paiement du client.
+            function appliquerModeReglement(mode) {
+                const libelle = modesReglementParClient[mode];
+                if (libelle && modeReglementSelect) {
+                    modeReglementSelect.value = libelle;
+                }
+            }
+
+            // Crée / met à jour les champs cachés miroir des selects verrouillés
+            // (un select disabled n'est pas soumis avec le formulaire).
+            function mettreAJourChampsVerrouilles() {
+                const form = missionSelect.closest('form');
+                ['fournisseur_id', 'client_id', 'consultant_id'].forEach(function(name) {
+                    const select = form.querySelector('select[name="' + name + '"]');
+                    let input = form.querySelector('input[type="hidden"][name="' + name + '"]');
+                    if (!input) {
+                        input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = name;
+                        form.appendChild(input);
+                    }
+                    input.value = select ? select.value : '';
+                });
+            }
+
+            // Supprime les champs cachés des selects verrouillés.
+            function supprimerChampsVerrouilles() {
+                const form = missionSelect.closest('form');
+                ['fournisseur_id', 'client_id', 'consultant_id'].forEach(function(name) {
+                    const input = form.querySelector('input[type="hidden"][name="' + name + '"]');
+                    if (input) {
+                        input.remove();
+                    }
+                });
+            }
+
+            // Applique la mission sélectionnée :
+            //  - avec la mission choisie, sélectionne fournisseur/client/consultant
+            //    correspondants, verrouille les trois selects et met à jour
+            //    échéance + mode de règlement depuis le client de la mission ;
+            //  - sans mission, réactive les trois selects et supprime les champs cachés.
+            // Avec `ecrire` à false (chargement où une mission est déjà présente),
+            // les valeurs affichées (old()/facture/clone, saisie utilisateur) primant,
+            // les selects sont seulement verrouillés sur leur valeur courante.
+            function applyMissionSelection(ecrire = false) {
+                if (!missionSelect.value) {
+                    [fournisseurSelect, clientSelect, consultantSelect].forEach(function(select) {
+                        select.disabled = false;
+                        classesVerrouillees.forEach(function(cl) { select.classList.remove(cl); });
+                    });
+                    supprimerChampsVerrouilles();
+                    return;
+                }
+
+                const option = missionSelect.options[missionSelect.selectedIndex];
+                if (ecrire) {
+                    const fournisseurAvant = fournisseurSelect.value;
+                    if (option.getAttribute('data-fournisseur-id')) {
+                        fournisseurSelect.value = option.getAttribute('data-fournisseur-id');
+                    }
+                    if (option.getAttribute('data-client-id')) {
+                        clientSelect.value = option.getAttribute('data-client-id');
+                    }
+                    if (option.getAttribute('data-consultant-id')) {
+                        consultantSelect.value = option.getAttribute('data-consultant-id');
+                    }
+                    // Numéro de facture recalculé si le fournisseur vient de changer
+                    if (fournisseurSelect.value && fournisseurSelect.value !== fournisseurAvant) {
+                        fetchNumeroSuivant(fournisseurSelect.value);
+                    }
+                    // Échéance et mode de règlement issus du client de la mission
+                    updateEcheance();
+                    appliquerModeReglement(option.getAttribute('data-client-mode'));
+                }
+
+                [fournisseurSelect, clientSelect, consultantSelect].forEach(function(select) {
+                    select.disabled = true;
+                    classesVerrouillees.forEach(function(cl) { select.classList.add(cl); });
+                });
+                mettreAJourChampsVerrouilles();
+            }
+
+            missionSelect.addEventListener('change', function() {
+                // Saisie utilisateur : les valeurs de la mission sont appliquées
+                applyMissionSelection(true);
+            });
+
+            // Au chargement : si une mission est déjà présente (old()/clone), on
+            // verrouille les selects sans réécrire les valeurs affichées.
+            if (missionSelect.value) {
+                applyMissionSelection(false);
+            }
+
+            // Date de facture modifiée : l'échéance suit automatiquement.
+            dateFactureInput.addEventListener('change', updateEcheance);
 
             const cloneDetails = @json($cloneDetails ?? []);
 
