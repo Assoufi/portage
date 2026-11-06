@@ -104,6 +104,7 @@ On 2026-11-02, running `php artisan migrate:fresh` against the default `.env` da
 - **ICE**: exactly 15 characters, unique, on both clients and fournisseurs; a uniqueness pre-check endpoint exists (`clients/check-identification`).
 - **TVA** defaults to 20%, **devise** to MAD; all amounts are `decimal(12,2)`.
 - **Invoice numbering**: format `yyyy-ddd`, counter **per fournisseur** (`Facture::genererNumeroFacturePourFournisseur()`, max+1, soft-deleted rows included). No DB UNIQUE on `numero_facture` (2026-11-04): fournisseurs genuinely reuse numbers (91 duplicate pairs in legacy imports across 55+ collisions), so uniqueness is enforced at application level only — `FactureRequest` blocks a duplicate number for the same fournisseur on manual/create-entry.
+- **detail_factures.montant_tva** stores the TVA **amount** per line (ex `tva` column renamed, former decimal(5,2) widened to decimal(12,2) on 2026-11-04); `FactureService::prepareDetail` computes `montant_ht * taux_tva / 100` — the DB stores the amount, never the rate.
 - **Date validation**: `date_fin >= date_debut` is enforced in application logic (`Mission::validateDates`), not at DB level.
 - **Payment terms**: mission `delai_paiement` defaults to 30 days, computed from `date_fin`.
 - **No hard deletes**: restrictive FKs + SoftDeletes preserve history; rows are disabled/inactivated via the boolean `statut` flag instead of removed.

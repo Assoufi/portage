@@ -37,6 +37,7 @@ class FacturesImport implements ToCollection, WithCalculatedFormulas
     public array $invalides = [];
     public int $lignesLues = 0;
 
+    private bool $feuilleLue = false;
     private array $enTetes = [];
 
     public function collection(Collection $rows): void
@@ -48,7 +49,11 @@ class FacturesImport implements ToCollection, WithCalculatedFormulas
         $this->extraireEnTetes($rows->first());
 
         if (empty($this->enTetes)) {
-            $this->invalides[] = ['ligne' => 1, 'raison' => 'Entêtes du fichier non reconnus'];
+            // Feuille suivante sans en-tête reconnu (ex. feuille de calcul vide) :
+            // on ne touche pas aux résultats des feuilles précédentes.
+            if (!$this->feuilleLue) {
+                $this->invalides[] = ['ligne' => 1, 'raison' => 'Entêtes du fichier non reconnus'];
+            }
             return;
         }
 
@@ -92,7 +97,14 @@ class FacturesImport implements ToCollection, WithCalculatedFormulas
             $groupes[$cle] = $this->nouveauGroupe($r, $numeroLigne);
         }
 
-        $this->factures = array_values($groupes);
+        // Feuille reconnue mais sans lignes de données (en-têtes seuls) :
+        // on ne vide pas les factures déjà collectées des feuilles précédentes.
+        if (empty($groupes) && $this->feuilleLue) {
+            return;
+        }
+
+        $this->factures = array_merge($this->factures, array_values($groupes));
+        $this->feuilleLue = true;
     }
 
     private function nouveauGroupe(array $r, int $ligne): array
