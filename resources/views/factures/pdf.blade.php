@@ -164,6 +164,9 @@
                 @if($fournisseur?->iban)
                     IBAN : {{ $fournisseur->iban }}<br>
                 @endif
+                @if($fournisseur?->swift_code)
+                    SWIFT : {{ $fournisseur->swift_code }}<br>
+                @endif
             </td>
         </tr>
     </table>

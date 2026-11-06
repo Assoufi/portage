@@ -21,6 +21,7 @@ class FournisseurFactory extends Factory
             'ice' => fake()->unique()->numerify('###############'),
             'rib' => fake()->iban('FR'),
             'iban' => fake()->numerify('FR##################'),
+            'swift_code' => fake()->regexify('[A-Z]{6}[A-Z0-9]{2}'),
             'taux' => 0.00,
             'statut' => true,
         ];

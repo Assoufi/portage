@@ -12,7 +12,7 @@
 @section('content')
     <div x-data="fournisseurForm()" x-init="init()" class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
         <div class="p-6">
-            <form method="POST" action="{{ route('fournisseurs.update', $fournisseur) }}" enctype="multipart/form-data" @submit.prevent="validateAndSubmit">
+            <form method="POST" action="{{ route('fournisseurs.update', $fournisseur) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" enctype="multipart/form-data" @submit.prevent="validateAndSubmit">
                 @csrf
                 @method('PUT')
                 
@@ -184,9 +184,24 @@
                                value="{{ old('iban', $fournisseur->iban) }}"
                                class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
                                :class="errors.iban ? 'border-red-500' : 'border-gray-300'"
-                               maxlength="20"
+                               maxlength="50"
                                placeholder="FR76000000000000">
                         <p x-show="errors.iban" x-text="errors.iban" class="text-red-500 text-xs mt-1"></p>
+                    </div>
+                    
+                    <!-- Code SWIFT / BIC -->
+                    <div>
+                        <label for="swift_code" class="block text-sm font-medium text-gray-700 mb-2">
+                            Code SWIFT / BIC
+                        </label>
+                        <input type="text" name="swift_code" id="swift_code" x-model="form.swift_code"
+                               @input="validateSwift()"
+                               value="{{ old('swift_code', $fournisseur->swift_code) }}"
+                               class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                               :class="errors.swift_code ? 'border-red-500' : 'border-gray-300'"
+                               maxlength="50"
+                               placeholder="BCDMAMXX">
+                        <p x-show="errors.swift_code" x-text="errors.swift_code" class="text-red-500 text-xs mt-1"></p>
                     </div>
                     
                     <!-- Statut -->
@@ -208,7 +223,7 @@
                 </div>
                 
                 <div class="mt-6 flex justify-end space-x-3">
-                    <a href="{{ route('fournisseurs.index') }}" 
+                    <a href="{{ route('fournisseurs.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" 
                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Annuler
                     </a>
@@ -238,6 +253,7 @@
                     responsable: '{{ old('responsable', $fournisseur->responsable) }}',
                     rib: '{{ old('rib', $fournisseur->rib) }}',
                     iban: '{{ old('iban', $fournisseur->iban) }}',
+                    swift_code: '{{ old('swift_code', $fournisseur->swift_code) }}',
                     statut: '{{ old('statut', $fournisseur->statut ? '1' : '0') }}',
                     footer: @js(old('footer', $fournisseur->footer))
                 },
@@ -347,13 +363,28 @@
                         const ibanRegex = /^[A-Za-z0-9]+$/;
                         if (!ibanRegex.test(this.form.iban)) {
                             this.errors.iban = 'L\'IBAN ne doit contenir que des lettres et des chiffres.';
-                        } else if (this.form.iban.length > 20) {
-                            this.errors.iban = 'L\'IBAN ne doit pas dépasser 20 caractères.';
+                        } else if (this.form.iban.length > 50) {
+                            this.errors.iban = 'L\'IBAN ne doit pas dépasser 50 caractères.';
                         } else {
                             delete this.errors.iban;
                         }
                     } else {
                         delete this.errors.iban;
+                    }
+                },
+                
+                validateSwift() {
+                    if (this.form.swift_code) {
+                        const swiftRegex = /^[A-Za-z0-9]+$/;
+                        if (!swiftRegex.test(this.form.swift_code)) {
+                            this.errors.swift_code = 'Le code SWIFT ne doit contenir que des lettres et des chiffres.';
+                        } else if (this.form.swift_code.length > 50) {
+                            this.errors.swift_code = 'Le code SWIFT ne doit pas dépasser 50 caractères.';
+                        } else {
+                            delete this.errors.swift_code;
+                        }
+                    } else {
+                        delete this.errors.swift_code;
                     }
                 },
                 
@@ -375,6 +406,7 @@
                     this.validateResponsable();
                     this.validateRib();
                     this.validateIban();
+                    this.validateSwift();
                     this.validateFooter();
                 },
                 

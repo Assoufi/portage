@@ -13,11 +13,11 @@
                class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Dupliquer
             </a>
-            <a href="{{ route('missions.edit', $mission) }}" 
+            <a href="{{ route('missions.edit', $mission) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" 
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Modifier
             </a>
-            <a href="{{ route('missions.index') }}" 
+            <a href="{{ route('missions.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" 
                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Retour
             </a>

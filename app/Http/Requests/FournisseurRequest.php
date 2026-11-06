@@ -72,7 +72,13 @@ class FournisseurRequest extends FormRequest
             'iban' => [
                 'nullable',
                 'string',
-                'max:20',
+                'max:50',
+                'regex:/^[A-Za-z0-9]+$/',
+            ],
+            'swift_code' => [
+                'nullable',
+                'string',
+                'max:50',
                 'regex:/^[A-Za-z0-9]+$/',
             ],
             'signature' => [
@@ -122,8 +128,11 @@ class FournisseurRequest extends FormRequest
             'responsable.max' => 'Le nom du responsable ne doit pas dépasser 255 caractères.',
             'rib.max' => 'Le RIB ne doit pas dépasser 255 caractères.',
 
-            'iban.max' => 'L\'IBAN ne doit pas dépasser 20 caractères.',
+            'iban.max' => 'L\'IBAN ne doit pas dépasser 50 caractères.',
             'iban.regex' => 'L\'IBAN ne doit contenir que des lettres et des chiffres.',
+
+            'swift_code.max' => 'Le code SWIFT ne doit pas dépasser 50 caractères.',
+            'swift_code.regex' => 'Le code SWIFT ne doit contenir que des lettres et des chiffres.',
 
             'signature.image' => 'La signature doit être une image.',
             'signature.mimes' => 'La signature doit être au format PNG, JPG, JPEG ou WEBP.',
@@ -148,6 +157,7 @@ class FournisseurRequest extends FormRequest
             'responsable' => trim($this->responsable),
             'rib' => trim($this->rib),
             'iban' => $this->iban ? strtoupper(preg_replace('/\s+/', '', $this->iban)) : null,
+            'swift_code' => $this->swift_code ? strtoupper(preg_replace('/\s+/', '', $this->swift_code)) : null,
             'taux' => floatval($this->taux),
         ]);
     }

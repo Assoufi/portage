@@ -12,11 +12,11 @@
                class="bg-gray-600 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Imprimer PDF
             </a>
-            <a href="{{ route('devis.edit', $devis) }}"
+            <a href="{{ route('devis.edit', $devis) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Modifier
             </a>
-            <a href="{{ route('devis.index') }}"
+            <a href="{{ route('devis.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Retour
             </a>

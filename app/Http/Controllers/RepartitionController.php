@@ -106,7 +106,7 @@ class RepartitionController extends Controller
             $this->repartitionService->updateRepartition($repartition, $request->validated());
 
             return redirect()
-                ->route('repartitions.index')
+                ->route('repartitions.index', $this->filtresCourants($request))
                 ->with('success', 'Répartition mise à jour avec succès.');
         } catch (\RuntimeException $e) {
             return redirect()

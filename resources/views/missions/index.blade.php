@@ -147,7 +147,7 @@
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex items-center justify-end space-x-2">
                                     {{-- Voir --}}
-                                    <a href="{{ route('missions.show', $mission) }}"
+                                    <a href="{{ route('missions.show', $mission) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-800 transition duration-150"
                                        title="Voir">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +156,7 @@
                                         </svg>
                                     </a>
                                     {{-- Modifier --}}
-                                    <a href="{{ route('missions.edit', $mission) }}"
+                                    <a href="{{ route('missions.edit', $mission) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                                        class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-50 text-yellow-600 hover:bg-yellow-100 hover:text-yellow-800 transition duration-150"
                                        title="Modifier">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

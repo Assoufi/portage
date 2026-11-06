@@ -38,7 +38,7 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div class="flex items-center justify-end gap-3">
-                            <a href="{{ route('paiements.show', $paiement) }}"
+                            <a href="{{ route('paiements.show', $paiement) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                                class="text-blue-600 hover:text-blue-900 transition-colors"
                                title="Voir">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -46,7 +46,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                 </svg>
                             </a>
-                            <a href="{{ route('paiements.edit', $paiement) }}"
+                            <a href="{{ route('paiements.edit', $paiement) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                                class="text-yellow-600 hover:text-yellow-900 transition-colors"
                                title="Modifier">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

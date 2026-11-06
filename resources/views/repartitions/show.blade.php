@@ -8,11 +8,11 @@
             Répartition #{{ $repartition->id }}
         </h2>
         <div class="space-x-2">
-            <a href="{{ route('repartitions.edit', $repartition) }}"
+            <a href="{{ route('repartitions.edit', $repartition) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Modifier
             </a>
-            <a href="{{ route('repartitions.index') }}"
+            <a href="{{ route('repartitions.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Retour
             </a>

@@ -86,6 +86,46 @@ class Client extends Model
     }
 
     // Mutateurs
+    public function getModeLivraisonAttribute($value)
+    {
+        $elements = $value;
+
+        if (is_string($elements)) {
+            $elements = trim($elements) === '' ? [] : json_decode($elements, true);
+        }
+
+        if (is_array($elements)) {
+            return collect($elements)
+                ->filter(fn ($e) => is_string($e) && trim($e) !== '')
+                ->map(fn ($e) => trim($e))
+                ->values()
+                ->all();
+        }
+
+        // Donnée legacy non JSON ('Papier' ou '"Papier"') : tableau à un élément
+        return $elements !== null && $elements !== false && trim($elements) !== ''
+            ? [trim($elements)]
+            : [];
+    }
+
+    public function setModeLivraisonAttribute($value)
+    {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            $value = is_array($decoded) ? $decoded : ($value !== '' ? [$value] : []);
+        }
+
+        $elements = collect(is_array($value) ? $value : [])
+            ->filter(fn ($e) => is_string($e) && trim($e) !== '')
+            ->map(fn ($e) => trim($e))
+            ->values()
+            ->all();
+
+        $this->attributes['mode_livraison'] = $elements === []
+            ? null
+            : json_encode($elements, JSON_UNESCAPED_UNICODE);
+    }
+
     public function setTvaAttribute($value)
     {
         $this->attributes['tva'] = ($value === '' || $value === null) ? 20 : $value;

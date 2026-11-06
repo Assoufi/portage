@@ -24,6 +24,7 @@ class Fournisseur extends Model
         'ice',
         'rib',
         'iban',
+        'swift_code',
         'signature',
         'logo',
         'footer',
@@ -113,6 +114,11 @@ class Fournisseur extends Model
     public function setIbanAttribute($value)
     {
         $this->attributes['iban'] = $value ? strtoupper(preg_replace('/\s+/', '', $value)) : null;
+    }
+
+    public function setSwiftCodeAttribute($value)
+    {
+        $this->attributes['swift_code'] = $value ? strtoupper(preg_replace('/\s+/', '', $value)) : null;
     }
 
     // Validation personnalisée pour ICE

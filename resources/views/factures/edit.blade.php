@@ -11,7 +11,7 @@
 @section('content')
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
         <div class="p-6">
-            <form method="POST" action="{{ route('factures.update', $facture) }}">
+            <form method="POST" action="{{ route('factures.update', $facture) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}">
                 @csrf
                 @method('PUT')
 
@@ -308,11 +308,11 @@
                 </div>
 
                 <div class="mt-6 flex justify-end space-x-3">
-                    <a href="{{ route('factures.index') }}"
+                    <a href="{{ route('factures.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Annuler
                     </a>
-                    <a href="{{ route('factures.index') }}"
+                    <a href="{{ route('factures.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                        class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Cloner
                     </a>

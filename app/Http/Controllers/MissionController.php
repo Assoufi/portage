@@ -165,7 +165,7 @@ class MissionController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('missions.index')
+                ->route('missions.index', $this->filtresCourants($request))
                 ->with('success', 'Mission mise à jour avec succès.');
 
         } catch (\Exception $e) {

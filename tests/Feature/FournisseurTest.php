@@ -97,6 +97,128 @@ class FournisseurTest extends TestCase
         $this->assertDatabaseCount('fournisseurs', 0);
     }
 
+    public function test_fournisseur_can_be_created_with_full_length_iban(): void
+    {
+        $user = User::factory()->create();
+
+        $payload = $this->validPayload();
+        $payload['iban'] = 'FR7630006000011234567890189';
+
+        $response = $this->actingAs($user)->post('/fournisseurs', $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $fournisseur = Fournisseur::where('nom', 'Fournisseur Images SARL')->firstOrFail();
+
+        $this->assertSame('FR7630006000011234567890189', $fournisseur->iban);
+    }
+
+    public function test_fournisseur_can_be_created_with_swift_code(): void
+    {
+        $user = User::factory()->create();
+
+        $payload = $this->validPayload();
+        $payload['swift_code'] = '  bcdmam xx  ';
+
+        $response = $this->actingAs($user)->post('/fournisseurs', $payload);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect('/fournisseurs');
+
+        $fournisseur = Fournisseur::where('nom', 'Fournisseur Images SARL')->firstOrFail();
+
+        $this->assertSame('BCDMAMXX', $fournisseur->swift_code);
+    }
+
+    public function test_fournisseur_can_be_created_without_swift_code(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/fournisseurs', $this->validPayload());
+
+        $response->assertSessionHasNoErrors();
+
+        $fournisseur = Fournisseur::where('nom', 'Fournisseur Images SARL')->firstOrFail();
+
+        $this->assertNull($fournisseur->swift_code);
+    }
+
+    public function test_fournisseur_swift_code_max_length_and_format_are_validated(): void
+    {
+        $user = User::factory()->create();
+
+        $payload = $this->validPayload();
+        $payload['swift_code'] = str_repeat('a', 51);
+
+        $response = $this->actingAs($user)->post('/fournisseurs', $payload);
+
+        $response->assertSessionHasErrors('swift_code');
+        $this->assertDatabaseCount('fournisseurs', 0);
+
+        $payload['swift_code'] = 'BCDM-AMXX';
+        $response = $this->actingAs($user)->post('/fournisseurs', $payload);
+
+        $response->assertSessionHasErrors('swift_code');
+        $this->assertDatabaseCount('fournisseurs', 0);
+    }
+
+    public function test_fournisseur_update_sets_swift_code(): void
+    {
+        $user = User::factory()->create();
+
+        $fournisseur = Fournisseur::factory()->create(['swift_code' => 'BCDMAMXX']);
+
+        $payload = $this->validPayload();
+        $payload['nom'] = $fournisseur->nom;
+        $payload['swift_code'] = 'abcdmam2026';
+
+        $response = $this->actingAs($user)
+            ->put('/fournisseurs/'.$fournisseur->id, $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $fournisseur->refresh();
+
+        $this->assertSame('ABCDMAM2026', $fournisseur->swift_code);
+    }
+
+    public function test_fournisseur_update_clears_swift_code_when_empty(): void
+    {
+        $user = User::factory()->create();
+
+        $fournisseur = Fournisseur::factory()->create(['swift_code' => 'BCDMAMXX']);
+
+        $payload = $this->validPayload();
+        $payload['nom'] = $fournisseur->nom;
+        $payload['swift_code'] = '';
+
+        $response = $this->actingAs($user)
+            ->put('/fournisseurs/'.$fournisseur->id, $payload);
+
+        $response->assertSessionHasNoErrors();
+
+        $fournisseur->refresh();
+
+        $this->assertNull($fournisseur->swift_code);
+    }
+
+    public function test_fournisseur_create_and_show_display_swift_field(): void
+    {
+        $user = User::factory()->create();
+        $fournisseur = Fournisseur::factory()->create(['swift_code' => 'BCDMAMXX']);
+
+        $this->actingAs($user)
+            ->get('/fournisseurs/create')
+            ->assertOk()
+            ->assertSee('Code SWIFT');
+
+        $this->actingAs($user)
+            ->get('/fournisseurs/'.$fournisseur->id)
+            ->assertOk()
+            ->assertSee('BCDMAMXX')
+            ->assertSee('Code SWIFT');
+    }
+
     public function test_fournisseur_update_replaces_signature_and_keeps_existing_logo(): void
     {
         Storage::fake('public');

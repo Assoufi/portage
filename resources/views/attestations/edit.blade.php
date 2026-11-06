@@ -104,7 +104,7 @@
          x-data="attestationForm(window.attestationConfig)"
          x-init="$nextTick(() => refreshMissionOptions())">
         <div class="p-6">
-            <form method="POST" action="{{ route('attestations.update', $attestation) }}">
+            <form method="POST" action="{{ route('attestations.update', $attestation) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}">
                 @csrf
                 @method('PUT')
 
@@ -235,7 +235,7 @@
                 </div>
 
                 <div class="mt-6 flex justify-end space-x-3">
-                    <a href="{{ route('attestations.index') }}"
+                    <a href="{{ route('attestations.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Annuler
                     </a>

@@ -38,19 +38,23 @@ Route::middleware(['auth'])->group(function () {
         ->name('consultants.export');
 
     // Routes pour les Clients
-    Route::resource('clients', ClientController::class);
+    // Déclarée avant la resource : sinon "clients/{client}" intercepte
+    // /clients/check-identification et tente de lier la chaîne comme ID de client.
     Route::get('clients/check-identification', [ClientController::class, 'checkIdentification'])
         ->name('clients.check-identification');
+    Route::resource('clients', ClientController::class);
 
     // Routes pour les Fournisseurs
     Route::resource('fournisseurs', FournisseurController::class);
 
     // Routes pour les Missions
-    Route::resource('missions', MissionController::class);
-    Route::post('missions/calculate-prix-vente', [MissionController::class, 'calculatePrixVente'])
-        ->name('missions.calculate-prix-vente');
+    // Routes statiques ANCIENNES avant la resource : sinon "missions/{mission}"
+    // intercepte "missions/dashboard" et lie "dashboard" comme ID de mission.
     Route::get('missions/dashboard', [MissionController::class, 'dashboard'])
         ->name('missions.dashboard');
+    Route::post('missions/calculate-prix-vente', [MissionController::class, 'calculatePrixVente'])
+        ->name('missions.calculate-prix-vente');
+    Route::resource('missions', MissionController::class);
     Route::get('missions/{mission}/dupliquer', [MissionController::class, 'dupliquer'])
         ->name('missions.dupliquer');
 

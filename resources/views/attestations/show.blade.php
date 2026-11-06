@@ -17,7 +17,7 @@
                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Télécharger (non signée)
             </a>
-            <a href="{{ route('attestations.edit', $attestation) }}"
+            <a href="{{ route('attestations.edit', $attestation) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Modifier
             </a>
@@ -68,10 +68,10 @@
         </div>
 
         <div class="px-6 py-4 border-t border-gray-200 flex justify-between">
-            <a href="{{ route('attestations.index') }}" class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+            <a href="{{ route('attestations.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" class="text-blue-600 hover:text-blue-900 text-sm font-medium">
                 ← Retour à la liste
             </a>
-            <form action="{{ route('attestations.destroy', $attestation) }}" method="POST">
+            <form action="{{ route('attestations.destroy', $attestation) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" method="POST">
                 @csrf
                 @method('DELETE')
                 <button type="submit"

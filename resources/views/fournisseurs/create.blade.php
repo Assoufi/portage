@@ -174,9 +174,23 @@
                                @input="validateIban()"
                                class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
                                :class="errors.iban ? 'border-red-500' : 'border-gray-300'"
-                               maxlength="20"
+                               maxlength="50"
                                placeholder="FR76000000000000">
                         <p x-show="errors.iban" x-text="errors.iban" class="text-red-500 text-xs mt-1"></p>
+                    </div>
+                    
+                    <!-- Code SWIFT / BIC -->
+                    <div>
+                        <label for="swift_code" class="block text-sm font-medium text-gray-700 mb-2">
+                            Code SWIFT / BIC
+                        </label>
+                        <input type="text" name="swift_code" id="swift_code" x-model="form.swift_code"
+                               @input="validateSwift()"
+                               class="w-full rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
+                               :class="errors.swift_code ? 'border-red-500' : 'border-gray-300'"
+                               maxlength="50"
+                               placeholder="BCDMAMXX">
+                        <p x-show="errors.swift_code" x-text="errors.swift_code" class="text-red-500 text-xs mt-1"></p>
                     </div>
                     
                     <!-- Statut -->
@@ -228,6 +242,7 @@
                     responsable: '{{ old('responsable', '') }}',
                     rib: '{{ old('rib', '') }}',
                     iban: '{{ old('iban', '') }}',
+                    swift_code: '{{ old('swift_code', '') }}',
                     statut: '{{ old('statut', '1') }}',
                     footer: @js(old('footer', ''))
                 },
@@ -337,13 +352,28 @@
                         const ibanRegex = /^[A-Za-z0-9]+$/;
                         if (!ibanRegex.test(this.form.iban)) {
                             this.errors.iban = 'L\'IBAN ne doit contenir que des lettres et des chiffres.';
-                        } else if (this.form.iban.length > 20) {
-                            this.errors.iban = 'L\'IBAN ne doit pas dépasser 20 caractères.';
+                        } else if (this.form.iban.length > 50) {
+                            this.errors.iban = 'L\'IBAN ne doit pas dépasser 50 caractères.';
                         } else {
                             delete this.errors.iban;
                         }
                     } else {
                         delete this.errors.iban;
+                    }
+                },
+                
+                validateSwift() {
+                    if (this.form.swift_code) {
+                        const swiftRegex = /^[A-Za-z0-9]+$/;
+                        if (!swiftRegex.test(this.form.swift_code)) {
+                            this.errors.swift_code = 'Le code SWIFT ne doit contenir que des lettres et des chiffres.';
+                        } else if (this.form.swift_code.length > 50) {
+                            this.errors.swift_code = 'Le code SWIFT ne doit pas dépasser 50 caractères.';
+                        } else {
+                            delete this.errors.swift_code;
+                        }
+                    } else {
+                        delete this.errors.swift_code;
                     }
                 },
                 
@@ -365,6 +395,7 @@
                     this.validateResponsable();
                     this.validateRib();
                     this.validateIban();
+                    this.validateSwift();
                     this.validateFooter();
                 },
                 

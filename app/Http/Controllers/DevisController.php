@@ -105,7 +105,7 @@ class DevisController extends Controller
             $this->devisService->updateDevis($devis, $request->validated());
 
             return redirect()
-                ->route('devis.index')
+                ->route('devis.index', $this->filtresCourants($request))
                 ->with('success', 'Devis mis à jour avec succès.');
         } catch (\Exception $e) {
             return redirect()

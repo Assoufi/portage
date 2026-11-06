@@ -12,7 +12,7 @@
 @section('content')
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
         <div class="p-6">
-            <form method="POST" action="{{ route('missions.update', $mission) }}" id="missionForm">
+            <form method="POST" action="{{ route('missions.update', $mission) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" id="missionForm">
                 @csrf
                 @method('PUT')
                 
@@ -207,7 +207,7 @@
                        class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Dupliquer
                     </a>
-                    <a href="{{ route('missions.index') }}" 
+                    <a href="{{ route('missions.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" 
                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Annuler
                     </a>

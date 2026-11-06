@@ -12,7 +12,7 @@
                class="bg-gray-600 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Imprimer
             </a>
-            <a href="{{ route('factures.edit', $facture) }}"
+            <a href="{{ route('factures.edit', $facture) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Modifier
             </a>
@@ -21,7 +21,7 @@
    title="Cloner">
     Cloner
 </a>
-            <a href="{{ route('factures.index') }}"
+            <a href="{{ route('factures.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Retour
             </a>

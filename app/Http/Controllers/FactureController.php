@@ -560,7 +560,7 @@ class FactureController extends Controller
             $this->factureService->updateFacture($facture, $request->validated());
 
             return redirect()
-                ->route('factures.index')
+                ->route('factures.index', $this->filtresCourants($request))
                 ->with('success', 'Facture mise à jour avec succès.');
         } catch (\Exception $e) {
             return redirect()

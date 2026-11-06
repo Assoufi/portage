@@ -127,7 +127,7 @@ class ConsultantController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('consultants.index')
+                ->route('consultants.index', $this->filtresCourants($request))
                 ->with('success', 'Consultant mis à jour avec succès.');
 
         } catch (\Exception $e) {

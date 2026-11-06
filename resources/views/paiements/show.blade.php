@@ -8,11 +8,11 @@
             Paiement {{ $paiement->reference }}
         </h2>
         <div class="space-x-2">
-            <a href="{{ route('paiements.edit', $paiement) }}"
+            <a href="{{ route('paiements.edit', $paiement) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Modifier
             </a>
-            <a href="{{ route('paiements.index') }}"
+            <a href="{{ route('paiements.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Retour
             </a>

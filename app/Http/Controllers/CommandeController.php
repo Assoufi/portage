@@ -102,7 +102,7 @@ class CommandeController extends Controller
             $this->commandeService->updateCommande($commande, $request->validated());
 
             return redirect()
-                ->route('commandes.index')
+                ->route('commandes.index', $this->filtresCourants($request))
                 ->with('success', 'Commande mise à jour avec succès.');
         } catch (\Exception $e) {
             return redirect()
@@ -118,7 +118,7 @@ class CommandeController extends Controller
             $this->commandeService->deleteCommande($commande);
 
             return redirect()
-                ->route('commandes.index', $request->query())
+                ->route('commandes.index', $this->filtresCourants($request))
                 ->with('success', 'Commande supprimée avec succès.');
         } catch (\Exception $e) {
             return redirect()

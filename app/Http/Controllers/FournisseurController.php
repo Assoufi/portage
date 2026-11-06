@@ -128,7 +128,7 @@ class FournisseurController extends Controller
             DB::commit();
 
             return redirect()
-                ->route('fournisseurs.index')
+                ->route('fournisseurs.index', $this->filtresCourants($request))
                 ->with('success', 'Fournisseur mis à jour avec succès.');
 
         } catch (\Exception $e) {

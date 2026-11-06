@@ -8,11 +8,11 @@
             Commande {{ $commande->num_commande }}
         </h2>
         <div class="flex space-x-2">
-            <a href="{{ route('commandes.edit', $commande) }}"
+            <a href="{{ route('commandes.edit', $commande) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Modifier
             </a>
-            <a href="{{ route('commandes.index') }}"
+            <a href="{{ route('commandes.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Retour
             </a>

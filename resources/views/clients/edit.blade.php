@@ -12,7 +12,7 @@
 @section('content')
     <div x-data="clientForm()" x-init="init()" class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
         <div class="p-6">
-            <form method="POST" action="{{ route('clients.update', $client) }}" @submit.prevent="validateAndSubmit">
+            <form method="POST" action="{{ route('clients.update', $client) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" @submit.prevent="validateAndSubmit">
                 @csrf
                 @method('PUT')
                 
@@ -257,7 +257,7 @@
                 </div>
                 
                 <div class="mt-6 flex justify-end space-x-3">
-                    <a href="{{ route('clients.index') }}" 
+                    <a href="{{ route('clients.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" 
                        class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                         Annuler
                     </a>

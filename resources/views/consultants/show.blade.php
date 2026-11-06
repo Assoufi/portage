@@ -9,11 +9,11 @@
             Consultant : {{ $consultant->nom }}
         </h2>
         <div class="space-x-2">
-            <a href="{{ route('consultants.edit', $consultant) }}" 
+            <a href="{{ route('consultants.edit', $consultant) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" 
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Modifier
             </a>
-            <a href="{{ route('consultants.index') }}" 
+            <a href="{{ route('consultants.index') . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}" 
                class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                 Retour
             </a>
@@ -72,12 +72,12 @@
                         
                         <div>
                             <p class="text-sm text-gray-600">Date d'inscription</p>
-                            <p class="font-medium">{{ $consultant->created_at->format('d/m/Y H:i') }}</p>
+                            <p class="font-medium">{{ $consultant->created_at?->format('d/m/Y H:i') ?? '—' }}</p>
                         </div>
                         
                         <div>
                             <p class="text-sm text-gray-600">Dernière modification</p>
-                            <p class="font-medium">{{ $consultant->updated_at->format('d/m/Y H:i') }}</p>
+                            <p class="font-medium">{{ $consultant->updated_at?->format('d/m/Y H:i') ?? '—' }}</p>
                         </div>
                     </div>
                 </div>

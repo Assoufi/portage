@@ -135,7 +135,7 @@ class PaiementController extends Controller
         try {
             $this->paiementService->updatePaiement($paiement, $request->validated());
 
-            return redirect()->route('paiements.index')
+            return redirect()->route('paiements.index', $this->filtresCourants($request))
                 ->with('success', 'Paiement mis à jour avec succès.');
         } catch (\Exception $e) {
             return redirect()->back()->withInput()

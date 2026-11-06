@@ -95,7 +95,7 @@ class AttestationController extends Controller
             $this->attestationService->updateAttestation($attestation, $request->validated());
 
             return redirect()
-                ->route('attestations.index')
+                ->route('attestations.index', $this->filtresCourants($request))
                 ->with('success', 'Attestation mise à jour avec succès.');
         } catch (\Exception $e) {
             return redirect()

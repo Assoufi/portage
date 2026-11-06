@@ -23,6 +23,31 @@ class ClientModelTest extends TestCase
         $this->assertSame(['Papier', 'Email', 'Whatsapp'], $client->mode_livraison);
     }
 
+    public function test_mode_livraison_accepte_les_valeurs_double_encodees_legacy(): void
+    {
+        // Brut '["Papier"]' encodé une seule fois tel que stocké par les imports legacy
+        $client = new Client;
+        $client->setRawAttributes(['mode_livraison' => '"Papier"']);
+
+        $this->assertSame(['Papier'], $client->mode_livraison);
+        $this->assertIsArray($client->mode_livraison);
+    }
+
+    public function test_mode_livraison_retourne_un_tableau_vide_si_valeur_legacy_vide(): void
+    {
+        $client = new Client;
+        $client->setRawAttributes(['mode_livraison' => '""']);
+
+        $this->assertSame([], $client->mode_livraison);
+    }
+
+    public function test_mode_livraison_sauvegarde_un_tableau_nettoye_en_json_simple(): void
+    {
+        $client = new Client(['mode_livraison' => [' Papier ', '', 'Email', 42]]);
+
+        $this->assertSame('["Papier","Email"]', $client->getAttributes()['mode_livraison']);
+    }
+
     public function test_telephone_mutator_trims_and_nullifies_empty(): void
     {
         $this->assertSame('0612345678', (new Client(['telephone' => '  0612345678  ']))->telephone);
