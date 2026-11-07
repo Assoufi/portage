@@ -380,8 +380,8 @@ function addDetailRow(data = {}) {
                         <input type="number"
                                name="details[${detailIndex}][quantite]"
                                value="${data.quantite || 1}"
-                               min="1"
-                               step="1"
+                               min="0.01"
+                               step="0.01"
 class="w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 text-right"
                                required>
                     </td>

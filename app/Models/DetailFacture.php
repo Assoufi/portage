@@ -20,8 +20,8 @@ class DetailFacture extends Model
     ];
 
     protected $casts = [
-        'quantite'       => 'integer',
-        'prix_unitaire'  => 'float',
+        'quantite' => 'float',
+        'prix_unitaire' => 'float',
     ];
 
     protected $attributes = [
@@ -35,7 +35,7 @@ class DetailFacture extends Model
 
     public function setQuantiteAttribute($value): void
     {
-        $this->attributes['quantite'] = ($value === '' || $value === null) ? 1 : (int) $value;
+        $this->attributes['quantite'] = ($value === '' || $value === null) ? 1 : (float) $value;
     }
 
     public function setPrixUnitaireAttribute($value): void
@@ -61,6 +61,7 @@ class DetailFacture extends Model
     public function getMontantTvaAttribute(): float
     {
         $tvaRate = $this->facture?->client?->tva ?? 20;
+
         return $this->montant_ht * $tvaRate / 100;
     }
 

@@ -33,11 +33,15 @@ class FacturesImport implements ToCollection, WithCalculatedFormulas
     ];
 
     public array $factures = [];
+
     public array $ignorees = [];
+
     public array $invalides = [];
+
     public int $lignesLues = 0;
 
     private bool $feuilleLue = false;
+
     private array $enTetes = [];
 
     public function collection(Collection $rows): void
@@ -51,9 +55,10 @@ class FacturesImport implements ToCollection, WithCalculatedFormulas
         if (empty($this->enTetes)) {
             // Feuille suivante sans en-tête reconnu (ex. feuille de calcul vide) :
             // on ne touche pas aux résultats des feuilles précédentes.
-            if (!$this->feuilleLue) {
+            if (! $this->feuilleLue) {
                 $this->invalides[] = ['ligne' => 1, 'raison' => 'Entêtes du fichier non reconnus'];
             }
+
             return;
         }
 
@@ -72,25 +77,22 @@ class FacturesImport implements ToCollection, WithCalculatedFormulas
             $this->lignesLues++;
             $numeroLigne = $this->lignesLues + 1;
 
-            if ($r['numero_facture'] !== '') {
-                $this->ignorees[] = ['ligne' => $numeroLigne, 'numero' => $r['numero_facture']];
-                continue;
-            }
-
             if ($r['client'] === '' || $r['fournisseur'] === '') {
                 $this->invalides[] = [
                     'ligne' => $numeroLigne,
                     'raison' => $r['client'] === '' ? 'Client absent' : 'Fournisseur absent',
                 ];
+
                 continue;
             }
 
             $cle = $r['groupe_facture'] !== ''
-                ? 'groupe:' . implode('|', [$r['groupe_facture'], $r['date'], $r['client'], $r['fournisseur'], $r['manager']])
-                : 'ligne:' . $numeroLigne;
+                ? 'groupe:'.implode('|', [$r['groupe_facture'], $r['numero_facture'], $r['date'], $r['client'], $r['fournisseur'], $r['manager']])
+                : 'ligne:'.$numeroLigne;
 
             if (isset($groupes[$cle])) {
                 $groupes[$cle]['lignes'][] = $this->detail($r, $numeroLigne);
+
                 continue;
             }
 
@@ -125,6 +127,7 @@ class FacturesImport implements ToCollection, WithCalculatedFormulas
             'date_paiement_ben' => self::parseDate($r['date_paiement_ben']),
             'paiement_fournisseur' => self::parseDate($r['paiement_fournisseur']),
             'groupe' => $r['groupe_facture'],
+            'numero_facture' => $r['numero_facture'],
             'ligne' => $ligne,
         ];
     }
@@ -133,7 +136,7 @@ class FacturesImport implements ToCollection, WithCalculatedFormulas
     {
         return [
             'designation' => $r['designation'] ?: 'Prestation',
-            'quantite' => $r['quantite'] !== '' ? (int) $r['quantite'] : 1,
+            'quantite' => $r['quantite'] !== '' ? (self::parseMontant($r['quantite']) ?? 1.0) : 1.0,
             'prix_unitaire' => self::parseMontant($r['prix_unitaire']) ?? 0.0,
             'montant_ttc' => $r['montant_ttc'] !== '' ? self::parseMontant($r['montant_ttc']) : null,
             'ligne' => $ligne,
@@ -171,7 +174,7 @@ class FacturesImport implements ToCollection, WithCalculatedFormulas
                 default => null,
             };
 
-            if ($champ !== null && !isset($this->enTetes[$champ])) {
+            if ($champ !== null && ! isset($this->enTetes[$champ])) {
                 $this->enTetes[$champ] = $index;
             }
         }

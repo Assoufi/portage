@@ -153,8 +153,8 @@ class FactureRequest extends FormRequest
             ],
             'details.*.quantite' => [
                 'required',
-                'integer',
-                'min:1',
+                'numeric',
+                'min:0.01',
             ],
             'details.*.prix_unitaire' => [
                 'required',

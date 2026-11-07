@@ -7,7 +7,6 @@ use App\Models\Client;
 use App\Models\Facture;
 use App\Models\Fournisseur;
 use App\Services\FactureService;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -18,27 +17,31 @@ class ImportFacturesCommand extends Command
                             {--file=Factures.xlsx : Fichier Excel relatif a storage/app}
                             {--execute : Appliquer les ecritures en base}';
 
-    protected $description = "Importe les factures sans N° Facture d'un fichier Excel (factures + lignes de detail)";
+    protected $description = "Importe les factures d'un fichier Excel (factures + lignes de detail)";
 
     private array $clientsRef = [];
+
     private array $fournisseursRef = [];
+
     private array $numerosSimules = [];
 
     public function handle(FactureService $service): int
     {
-        $chemin = storage_path('app/' . $this->option('file'));
+        $chemin = storage_path('app/'.$this->option('file'));
 
-        if (!is_file($chemin)) {
+        if (! is_file($chemin)) {
             $this->error("Fichier introuvable : {$chemin}");
+
             return 1;
         }
 
-        if (!\Schema::hasColumn('factures', 'periode')) {
+        if (! \Schema::hasColumn('factures', 'periode')) {
             $this->error("Colonne 'factures.periode' absente de la base : import impossible.");
+
             return 1;
         }
 
-        $import = new FacturesImport();
+        $import = new FacturesImport;
         Excel::import($import, $chemin);
 
         $execute = (bool) $this->option('execute');
@@ -47,9 +50,8 @@ class ImportFacturesCommand extends Command
             ? '=== IMPORT factures : exécution réelle ==='
             : '=== IMPORT factures : simulation (utiliser --execute pour appliquer) ===');
         $this->line(sprintf(
-            '%d ligne(s) de données | %d ignorée(s) (N° Facture rempli) | %d ligne(s) invalide(s) | %d facture(s) à importer',
+            '%d ligne(s) de données | %d ligne(s) invalide(s) | %d facture(s) à importer',
             $import->lignesLues,
-            count($import->ignorees),
             count($import->invalides),
             count($import->factures)
         ));
@@ -60,6 +62,7 @@ class ImportFacturesCommand extends Command
 
         if (empty($import->factures)) {
             $this->warn('Rien à importer.');
+
             return 0;
         }
 
@@ -100,7 +103,7 @@ class ImportFacturesCommand extends Command
                 DB::rollBack();
             }
 
-            $this->error('Import interrompu (rollback complet) : ' . $e->getMessage());
+            $this->error('Import interrompu (rollback complet) : '.$e->getMessage());
             $this->reporter($rapport);
 
             return 1;
@@ -121,6 +124,7 @@ class ImportFacturesCommand extends Command
 
         $client = $this->resoudreClient($f, $execute);
         $fournisseur = $this->resoudreFournisseur($f['fournisseur'], $execute);
+        $numeroExplicite = trim((string) ($f['numero_facture'] ?? ''));
 
         $totalHt = round(collect($f['lignes'])->sum(fn ($d) => $d['quantite'] * $d['prix_unitaire']), 2);
         $taux = (float) $client['tva'];
@@ -139,16 +143,15 @@ class ImportFacturesCommand extends Command
             );
         }
 
-        if ($client['id'] !== null) {
+        if ($numeroExplicite !== '' && $fournisseur['id'] !== null) {
             $doublon = Facture::withTrashed()
-                ->where('client_id', $client['id'])
-                ->whereDate('date_facture', $f['date']->toDateString())
-                ->whereRaw('ABS(montant_ttc - ?) < 0.05', [$ttcCalcule])
+                ->where('fournisseur_id', $fournisseur['id'])
+                ->where('numero_facture', $numeroExplicite)
                 ->first();
 
             if ($doublon) {
                 $rapport['doublons'][] = sprintf(
-                    'Ligne %s (%s / %s) : facture %s (id %s) déjà en base (client + date + TTC identiques)',
+                    'Ligne %s (%s / %s) : facture %s (id %s) déjà en base (numéro identique)',
                     $f['ligne'],
                     $client['nom'],
                     $fournisseur['nom'],
@@ -162,12 +165,14 @@ class ImportFacturesCommand extends Command
 
         $echeance = $f['date']->copy()->addDays($client['delai_paiement'] ?? 60)->toDateString();
 
-        if (!$execute) {
+        if (! $execute) {
             return [
-                'numero' => $this->numeroSimule($fournisseur) . ' (prévisionnel)',
+                'numero' => $numeroExplicite !== ''
+                    ? $numeroExplicite
+                    : $this->numeroSimule($fournisseur).' (prévisionnel)',
                 'id' => '-',
-                'client' => $client['nom'] . ($client['nouveau'] ? ' [NOUVEAU]' : ''),
-                'fournisseur' => $fournisseur['nom'] . ($fournisseur['nouveau'] ? ' [NOUVEAU]' : ''),
+                'client' => $client['nom'].($client['nouveau'] ? ' [NOUVEAU]' : ''),
+                'fournisseur' => $fournisseur['nom'].($fournisseur['nouveau'] ? ' [NOUVEAU]' : ''),
                 'date' => $f['date']->format('d/m/Y'),
                 'periode' => $f['periode']?->format('m/Y') ?: '-',
                 'echeance' => $f['date']->copy()->addDays($client['delai_paiement'] ?? 60)->format('d/m/Y'),
@@ -179,6 +184,7 @@ class ImportFacturesCommand extends Command
         $facture = $service->createFacture([
             'fournisseur_id' => $fournisseur['id'],
             'client_id' => $client['id'],
+            'numero_facture' => $numeroExplicite,
             'total_ht' => $totalHt,
             'taux_tva' => $taux,
             'montant_ttc' => $ttcCalcule,
@@ -201,8 +207,8 @@ class ImportFacturesCommand extends Command
         return [
             'numero' => $facture->numero_facture,
             'id' => $facture->id,
-            'client' => $client['nom'] . ($client['nouveau'] ? ' [NOUVEAU]' : ''),
-            'fournisseur' => $fournisseur['nom'] . ($fournisseur['nouveau'] ? ' [NOUVEAU]' : ''),
+            'client' => $client['nom'].($client['nouveau'] ? ' [NOUVEAU]' : ''),
+            'fournisseur' => $fournisseur['nom'].($fournisseur['nouveau'] ? ' [NOUVEAU]' : ''),
             'date' => $f['date']->format('d/m/Y'),
             'total_ht' => $facture->total_ht,
             'montant_ttc' => $facture->montant_ttc,
@@ -211,7 +217,7 @@ class ImportFacturesCommand extends Command
 
     private function resoudreClient(array $f, bool $execute): array
     {
-        $cle = 'client:' . mb_strtolower(trim($f['client']));
+        $cle = 'client:'.mb_strtolower(trim($f['client']));
 
         if (isset($this->clientsRef[$cle])) {
             return $this->clientsRef[$cle];
@@ -240,7 +246,7 @@ class ImportFacturesCommand extends Command
         $tvaDerivee = $this->deriverTva($doc['montant_ttc'], $doc['quantite'], $doc['prix_unitaire']);
         $nomBd = mb_substr(trim($f['client']), 0, 50);
 
-        if (!$execute) {
+        if (! $execute) {
             return $this->clientsRef[$cle] = [
                 'id' => null,
                 'nom' => $nomBd,
@@ -256,7 +262,6 @@ class ImportFacturesCommand extends Command
             'adresse' => $nomBd,
             'tva' => $tvaDerivee,
             'devise' => str_contains($f['devise'], '€') ? 'EUR' : 'MAD',
-            'contact' => $f['contact'] ?: null,
             'periodicite' => $f['periodicite'] !== '' ? mb_substr($f['periodicite'], 0, 50) : null,
             'mode_livraison' => $f['livraison'] !== '' ? [mb_substr($f['livraison'], 0, 50)] : null,
         ]);
@@ -273,7 +278,7 @@ class ImportFacturesCommand extends Command
 
     private function resoudreFournisseur(string $nomExcel, bool $execute): array
     {
-        $cle = 'fournisseur:' . mb_strtolower(trim($nomExcel));
+        $cle = 'fournisseur:'.mb_strtolower(trim($nomExcel));
 
         if (isset($this->fournisseursRef[$cle])) {
             return $this->fournisseursRef[$cle];
@@ -297,7 +302,7 @@ class ImportFacturesCommand extends Command
 
         $nomBd = mb_substr(trim($nomExcel), 0, 50);
 
-        if (!$execute) {
+        if (! $execute) {
             return $this->fournisseursRef[$cle] = ['id' => null, 'nom' => $nomBd, 'nouveau' => true];
         }
 
@@ -310,7 +315,7 @@ class ImportFacturesCommand extends Command
         ];
     }
 
-    private function deriverTva(?float $ttcExcel, int $quantite, float $prixUnitaire): float
+    private function deriverTva(?float $ttcExcel, float $quantite, float $prixUnitaire): float
     {
         if ($ttcExcel === null) {
             return 20.0;
@@ -328,9 +333,9 @@ class ImportFacturesCommand extends Command
     private function genererIceAuto(): string
     {
         for ($n = 1; $n < 1000000; $n++) {
-            $ice = 'AUTO' . str_pad((string) $n, 11, '0', STR_PAD_LEFT);
+            $ice = 'AUTO'.str_pad((string) $n, 11, '0', STR_PAD_LEFT);
 
-            if (!Fournisseur::withTrashed()->where('ice', $ice)->exists()) {
+            if (! Fournisseur::withTrashed()->where('ice', $ice)->exists()) {
                 return $ice;
             }
         }
@@ -340,18 +345,18 @@ class ImportFacturesCommand extends Command
 
     private function numeroSimule(array $fournisseur): string
     {
-        $cle = $fournisseur['nouveau'] ? 'nouveau:' . $fournisseur['nom'] : 'id:' . $fournisseur['id'];
+        $cle = $fournisseur['nouveau'] ? 'nouveau:'.$fournisseur['nom'] : 'id:'.$fournisseur['id'];
 
-        if (!isset($this->numerosSimules[$cle])) {
+        if (! isset($this->numerosSimules[$cle])) {
             $this->numerosSimules[$cle] = $fournisseur['nouveau']
-                ? date('Y') . '-000'
+                ? date('Y').'-000'
                 : Facture::genererNumeroFacturePourFournisseur($fournisseur['id']);
         }
 
         $parts = explode('-', $this->numerosSimules[$cle]);
         $annee = (int) $parts[0];
         $sequence = (int) ($parts[1] ?? 0);
-        $this->numerosSimules[$cle] = $annee . '-' . str_pad((string) ($sequence + 1), 3, '0', STR_PAD_LEFT);
+        $this->numerosSimules[$cle] = $annee.'-'.str_pad((string) ($sequence + 1), 3, '0', STR_PAD_LEFT);
 
         return $this->numerosSimules[$cle];
     }
@@ -359,7 +364,7 @@ class ImportFacturesCommand extends Command
     private function reporter(array $rapport): void
     {
         $this->line('');
-        $this->info('--- Factures ' . ($rapport['importees'] ? 'prévues / importées' : '') . ' ---');
+        $this->info('--- Factures '.($rapport['importees'] ? 'prévues / importées' : '').' ---');
 
         foreach ($rapport['importees'] as $f) {
             $this->line(sprintf(
