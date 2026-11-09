@@ -37,6 +37,7 @@
                             Consultant *
                         </label>
                         <select name="consultant_id" id="consultant_id" x-model="form.consultant_id"
+                                @change="validateSelections()"
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
                                 :class="errors.consultant_id ? 'border-red-500' : 'border-gray-300'">
                             <option value="">Sélectionner un consultant</option>
@@ -53,6 +54,7 @@
                             Client *
                         </label>
                         <select name="client_id" id="client_id" x-model="form.client_id"
+                                @change="validateSelections()"
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
                                 :class="errors.client_id ? 'border-red-500' : 'border-gray-300'">
                             <option value="">Sélectionner un client</option>
@@ -81,6 +83,7 @@
                             Fournisseur *
                         </label>
                         <select name="fournisseur_id" id="fournisseur_id" x-model="form.fournisseur_id"
+                                @change="validateSelections()"
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200"
                                 :class="errors.fournisseur_id ? 'border-red-500' : 'border-gray-300'">
                             <option value="">Sélectionner un fournisseur</option>
@@ -351,14 +354,7 @@
                         this.errors.date_debut = 'La date de début est obligatoire.';
                     } else {
                         const dateDebut = new Date(this.form.date_debut);
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        
-                        if (dateDebut < today) {
-                            this.errors.date_debut = 'La date de début ne peut pas être dans le passé.';
-                        } else {
-                            delete this.errors.date_debut;
-                        }
+                        delete this.errors.date_debut;
                         
                         // Validation de la date de fin
                         if (this.form.date_fin) {
