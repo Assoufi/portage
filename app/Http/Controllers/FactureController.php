@@ -11,6 +11,7 @@ use App\Models\Facture;
 use App\Models\Fournisseur;
 use App\Models\Mission;
 use App\Services\FactureService;
+use App\Support\EmailLogger;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -416,11 +417,20 @@ class FactureController extends Controller
 
         $pdf = $this->genererPdf($facture, true);
 
-        \Mail::to($destinataires)
-            ->cc($copie)
-            ->send(new FactureLivraison($facture, $pdf));
+        try {
+            \Mail::to($destinataires)
+                ->cc($copie)
+                ->send(new FactureLivraison($facture, $pdf));
 
-        $stats['email']++;
+            EmailLogger::succes(FactureLivraison::class, $destinataires, $copie);
+            $stats['email']++;
+        } catch (\Throwable $e) {
+            EmailLogger::echec(FactureLivraison::class, $destinataires, $e);
+            $erreurs[] = [
+                'numero_facture' => $facture->numero_facture,
+                'message' => "Erreur lors de l'envoi de la facture par email : ".$e->getMessage(),
+            ];
+        }
     }
 
     /**

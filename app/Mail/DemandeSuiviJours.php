@@ -20,7 +20,7 @@ class DemandeSuiviJours extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: 'portage@homsys.ma',
+            from: config('mail.from.address'),
             subject: "Demande de suivi des jours prestés - {$this->mois}",
         );
     }

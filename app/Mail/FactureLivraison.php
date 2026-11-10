@@ -24,10 +24,10 @@ class FactureLivraison extends Mailable
     {
         $fournisseur = $this->facture->fournisseur?->nom ?? 'Facturation';
 
-        return $this->from('portage@homsys.ma', $fournisseur)
+        return $this->from(config('mail.from.address'), $fournisseur)
             ->subject("Facture {$this->facture->numero_facture} — {$fournisseur}")
             ->markdown('emails.facture-livraison')
-            ->attachData($this->pdfData, 'facture-' . $this->facture->numero_facture . '.pdf', [
+            ->attachData($this->pdfData, 'facture-'.$this->facture->numero_facture.'.pdf', [
                 'mime' => 'application/pdf',
             ]);
     }

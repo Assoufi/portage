@@ -1,16 +1,17 @@
 <?php
+
 // app/Http/Controllers/StatsController.php
 
 namespace App\Http\Controllers;
 
-use App\Models\Mission;
-use App\Models\Consultant;
+use App\Mail\DemandeSuiviJours;
 use App\Models\Client;
+use App\Models\Consultant;
 use App\Models\Fournisseur;
+use App\Models\Mission;
+use App\Support\EmailLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
-use App\Mail\DemandeSuiviJours;
 use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -44,7 +45,7 @@ class StatsController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->whereHas('consultant', function ($cq) use ($search) {
                     $cq->where('nom', 'like', "%{$search}%")
-                       ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%");
                 })->orWhereHas('client', function ($clq) use ($search) {
                     $clq->where('nom', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");
@@ -58,9 +59,9 @@ class StatsController extends Controller
         $missions = $query->paginate(15)->withQueryString();
 
         // Données pour les filtres : uniquement les consultants/clients/fournisseurs ayant des missions en cours
-        $consultants = Consultant::whereHas('missions', fn($q) => $q->enCours())->orderBy('nom')->get();
-        $clients = Client::whereHas('missions', fn($q) => $q->enCours())->orderBy('nom')->get();
-        $fournisseurs = Fournisseur::whereHas('missions', fn($q) => $q->enCours())->orderBy('nom')->get();
+        $consultants = Consultant::whereHas('missions', fn ($q) => $q->enCours())->orderBy('nom')->get();
+        $clients = Client::whereHas('missions', fn ($q) => $q->enCours())->orderBy('nom')->get();
+        $fournisseurs = Fournisseur::whereHas('missions', fn ($q) => $q->enCours())->orderBy('nom')->get();
 
         return view('stats.prestations-non-declarees', compact('missions', 'consultants', 'clients', 'fournisseurs'));
     }
@@ -72,15 +73,15 @@ class StatsController extends Controller
     {
         $missions = Mission::with(['consultant', 'client', 'fournisseur'])
             ->enCours()
-            ->when($request->filled('consultant_id'), fn($q) => $q->where('consultant_id', $request->consultant_id))
-            ->when($request->filled('client_id'), fn($q) => $q->where('client_id', $request->client_id))
-            ->when($request->filled('fournisseur_id'), fn($q) => $q->where('fournisseur_id', $request->fournisseur_id))
+            ->when($request->filled('consultant_id'), fn ($q) => $q->where('consultant_id', $request->consultant_id))
+            ->when($request->filled('client_id'), fn ($q) => $q->where('client_id', $request->client_id))
+            ->when($request->filled('fournisseur_id'), fn ($q) => $q->where('fournisseur_id', $request->fournisseur_id))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $search = $request->search;
                 $q->where(function ($q2) use ($search) {
                     $q2->whereHas('consultant', function ($cq) use ($search) {
                         $cq->where('nom', 'like', "%{$search}%")
-                           ->orWhere('email', 'like', "%{$search}%");
+                            ->orWhere('email', 'like', "%{$search}%");
                     })->orWhereHas('client', function ($clq) use ($search) {
                         $clq->where('nom', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
@@ -118,12 +119,12 @@ class StatsController extends Controller
             fclose($handle);
         };
 
-        $filename = 'prestations_non_declarees_' . now()->format('Y-m-d_His') . '.csv';
+        $filename = 'prestations_non_declarees_'.now()->format('Y-m-d_His').'.csv';
 
         return response()->stream($callback, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            'Cache-Control'       => 'no-cache, no-store, must-revalidate',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
         ]);
     }
 
@@ -134,15 +135,15 @@ class StatsController extends Controller
     {
         $missions = Mission::with(['consultant', 'client', 'fournisseur'])
             ->enCours()
-            ->when($request->filled('consultant_id'), fn($q) => $q->where('consultant_id', $request->consultant_id))
-            ->when($request->filled('client_id'), fn($q) => $q->where('client_id', $request->client_id))
-            ->when($request->filled('fournisseur_id'), fn($q) => $q->where('fournisseur_id', $request->fournisseur_id))
+            ->when($request->filled('consultant_id'), fn ($q) => $q->where('consultant_id', $request->consultant_id))
+            ->when($request->filled('client_id'), fn ($q) => $q->where('client_id', $request->client_id))
+            ->when($request->filled('fournisseur_id'), fn ($q) => $q->where('fournisseur_id', $request->fournisseur_id))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $search = $request->search;
                 $q->where(function ($q2) use ($search) {
                     $q2->whereHas('consultant', function ($cq) use ($search) {
                         $cq->where('nom', 'like', "%{$search}%")
-                           ->orWhere('email', 'like', "%{$search}%");
+                            ->orWhere('email', 'like', "%{$search}%");
                     })->orWhereHas('client', function ($clq) use ($search) {
                         $clq->where('nom', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
@@ -157,15 +158,33 @@ class StatsController extends Controller
         // Grouper par consultant (dédupliquer)
         $consultants = $missions->pluck('consultant')->unique('id');
 
+        $envoyes = 0;
+        $echecs = [];
+
         foreach ($consultants as $consultant) {
-            Mail::to($consultant->email)
-                ->send(new DemandeSuiviJours($consultant->nom, $mois));
+            try {
+                Mail::to($consultant->email)
+                    ->send(new DemandeSuiviJours($consultant->nom, $mois));
+
+                EmailLogger::succes(DemandeSuiviJours::class, [$consultant->email]);
+                $envoyes++;
+            } catch (\Throwable $e) {
+                EmailLogger::echec(DemandeSuiviJours::class, [$consultant->email], $e);
+                $echecs[] = $consultant->nom;
+            }
         }
 
-        $count = $consultants->count();
+        $message = "{$envoyes} email(s) envoyé(s) avec succès.";
+
+        if ($echecs !== []) {
+            return redirect()
+                ->route('stats.prestations-non-declarees', $request->query())
+                ->with('success', $message)
+                ->with('error', count($echecs).' email(s) non envoyé(s) : '.implode(', ', $echecs).'.');
+        }
 
         return redirect()
             ->route('stats.prestations-non-declarees', $request->query())
-            ->with('success', "{$count} email(s) envoyé(s) avec succès.");
+            ->with('success', $message);
     }
 }
