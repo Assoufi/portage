@@ -12,7 +12,8 @@ class Facture extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table      = 'factures';
+    protected $table = 'factures';
+
     protected $primaryKey = 'id';
 
     protected $fillable = [
@@ -41,26 +42,46 @@ class Facture extends Model
     ];
 
     protected $casts = [
-        'date_facture'        => 'date:Y-m-d',
-        'date_paiement'       => 'date:Y-m-d',
-        'date_echeance'       => 'date:Y-m-d',
-        'date_reception'      => 'date:Y-m-d',
-        'date_reglement'      => 'date:Y-m-d',
-        'periode'             => 'date:Y-m-d',
-        'montant_ttc'         => 'float',
-        'total_ht'            => 'float',
-        'taux_tva'            => 'float',
-        'statut'              => 'boolean',
+        'date_facture' => 'date:Y-m-d',
+        'date_paiement' => 'date:Y-m-d',
+        'date_echeance' => 'date:Y-m-d',
+        'date_reception' => 'date:Y-m-d',
+        'date_reglement' => 'date:Y-m-d',
+        'periode' => 'date:Y-m-d',
+        'montant_ttc' => 'float',
+        'total_ht' => 'float',
+        'taux_tva' => 'float',
+        'statut' => 'boolean',
     ];
 
     protected $attributes = [
-        'statut'   => true,
+        'statut' => true,
         'taux_tva' => 20.00,
     ];
 
     public function details(): HasMany
     {
         return $this->hasMany(DetailFacture::class, 'facture_id');
+    }
+
+    public function avoirs(): HasMany
+    {
+        return $this->hasMany(Avoir::class, 'facture_id');
+    }
+
+    public function getMontantAvoirsAttribute(): float
+    {
+        return (float) ($this->avoirs_sum_montant_ttc ?? $this->avoirs()->sum('montant_ttc'));
+    }
+
+    public function getMontantRestantAttribute(): float
+    {
+        return max(0, (float) ($this->montant_ttc ?? 0) - $this->montant_avoirs);
+    }
+
+    public function getEstAnnuleeAttribute(): bool
+    {
+        return $this->montant_restant <= 0.009 && $this->montant_avoirs > 0;
     }
 
     public function fournisseur(): BelongsTo
@@ -91,8 +112,8 @@ class Facture extends Model
         $tva = $totalHt * $tvaRate / 100;
         $montant = $totalHt + $tva;
 
-        $this->total_ht    = $totalHt;
-        $this->taux_tva    = $tvaRate;
+        $this->total_ht = $totalHt;
+        $this->taux_tva = $tvaRate;
         $this->montant_ttc = $montant;
     }
 
@@ -180,9 +201,9 @@ class Facture extends Model
 
     public static function genererNumeroFacture(): string
     {
-        $prefixe = 'FACT-' . date('Y') . '-';
+        $prefixe = 'FACT-'.date('Y').'-';
         $dernier = static::withTrashed()
-            ->where('numero_facture', 'LIKE', $prefixe . '%')
+            ->where('numero_facture', 'LIKE', $prefixe.'%')
             ->orderBy('id', 'desc')
             ->value('numero_facture');
 
@@ -192,7 +213,7 @@ class Facture extends Model
             $numero = 1;
         }
 
-        return $prefixe . str_pad($numero, 5, '0', STR_PAD_LEFT);
+        return $prefixe.str_pad($numero, 5, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -212,21 +233,21 @@ class Facture extends Model
         }
 
         // Recherche du maximum (année puis séquence)
-        $maxAnnee    = null;
+        $maxAnnee = null;
         $maxSequence = 0;
         foreach ($query->pluck('numero_facture') as $numero) {
             [$annee, $sequence] = array_map('intval', explode('-', $numero));
 
             if ($maxAnnee === null || $annee > $maxAnnee
                 || ($annee === $maxAnnee && $sequence > $maxSequence)) {
-                $maxAnnee    = $annee;
+                $maxAnnee = $annee;
                 $maxSequence = $sequence;
             }
         }
 
         $annee = $maxAnnee ?? (int) date('Y');
 
-        return $annee . '-' . str_pad((string) ($maxSequence + 1), 3, '0', STR_PAD_LEFT);
+        return $annee.'-'.str_pad((string) ($maxSequence + 1), 3, '0', STR_PAD_LEFT);
     }
 
     public function scopeActif($query)
@@ -273,8 +294,8 @@ class Facture extends Model
     {
         return $query->where('numero_facture', 'LIKE', "%{$terme}%")
             ->orWhere('beneficiaire', 'LIKE', "%{$terme}%")
-            ->orWhereHas('client', fn($q) => $q->where('nom', 'LIKE', "%{$terme}%"))
-            ->orWhereHas('fournisseur', fn($q) => $q->where('nom', 'LIKE', "%{$terme}%"))
-            ->orWhereHas('consultant', fn($q) => $q->where('nom', 'LIKE', "%{$terme}%"));
+            ->orWhereHas('client', fn ($q) => $q->where('nom', 'LIKE', "%{$terme}%"))
+            ->orWhereHas('fournisseur', fn ($q) => $q->where('nom', 'LIKE', "%{$terme}%"))
+            ->orWhereHas('consultant', fn ($q) => $q->where('nom', 'LIKE', "%{$terme}%"));
     }
 }

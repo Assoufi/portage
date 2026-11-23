@@ -61,7 +61,7 @@
                     <div class="flex items-center">
                         <x-dropdown align="left" width="w-56">
                             <x-slot name="trigger">
-                                <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none {{ request()->routeIs('paiements.*') || request()->routeIs('repartitions.*') || request()->routeIs('factures.*') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                <button class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none {{ request()->routeIs('paiements.*') || request()->routeIs('repartitions.*') || request()->routeIs('factures.*') || request()->routeIs('avoirs.*') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                                     <span>Comptabilité</span>
                                     <svg class="fill-current h-4 w-4 ml-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -81,6 +81,10 @@
                                 <x-dropdown-link :href="route('factures.index')"
                                                  class="{{ request()->routeIs('factures.*') ? 'bg-gray-100' : '' }}">
                                     Factures
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('avoirs.index')"
+                                                 class="{{ request()->routeIs('avoirs.*') ? 'bg-gray-100' : '' }}">
+                                    Avoirs
                                 </x-dropdown-link>
                             </x-slot>
                         </x-dropdown>
@@ -200,7 +204,7 @@
             <!-- Sous-menu Comptabilité responsive -->
             <div x-data="{ comptabiliteOpen: false }" @click.outside="comptabiliteOpen = false" @keydown.escape.stop="comptabiliteOpen = false">
                 <button @click="comptabiliteOpen = !comptabiliteOpen"
-                        class="w-full flex items-center justify-between px-4 py-2 text-base font-medium {{ request()->routeIs('paiements.*') || request()->routeIs('repartitions.*') || request()->routeIs('factures.*') ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700' }} hover:bg-gray-100 focus:outline-none transition duration-150">
+                        class="w-full flex items-center justify-between px-4 py-2 text-base font-medium {{ request()->routeIs('paiements.*') || request()->routeIs('repartitions.*') || request()->routeIs('factures.*') || request()->routeIs('avoirs.*') ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700' }} hover:bg-gray-100 focus:outline-none transition duration-150">
                     <span>Comptabilité</span>
                     <svg class="w-4 h-4 transition-transform" :class="{'rotate-180': comptabiliteOpen}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -215,6 +219,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('factures.index')" :active="request()->routeIs('factures.*')">
                         Factures
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('avoirs.index')" :active="request()->routeIs('avoirs.*')">
+                        Avoirs
                     </x-responsive-nav-link>
                 </div>
             </div>

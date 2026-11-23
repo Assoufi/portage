@@ -3,6 +3,7 @@
 // routes/web.php
 
 use App\Http\Controllers\AttestationController;
+use App\Http\Controllers\AvoirController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CommandeController;
 use App\Http\Controllers\ConsultantController;
@@ -89,6 +90,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('factures/{facture}/cloner-donnees', [FactureController::class, 'clonerDonnees'])
         ->name('factures.cloner-donnees');
     Route::resource('factures', FactureController::class);
+
+    // Routes pour les Avoirs (menu Comptabilité)
+    Route::get('avoirs/facture/{facture}/donnees', [AvoirController::class, 'donnees'])
+        ->name('avoirs.donnees');
+    Route::get('avoirs/{avoir}/pdf', [AvoirController::class, 'pdf'])
+        ->name('avoirs.pdf');
+    Route::resource('avoirs', AvoirController::class);
 
     // Routes pour les Attestations de mission (menu Documents)
     Route::get('attestations/{attestation}/pdf', [AttestationController::class, 'pdf'])
