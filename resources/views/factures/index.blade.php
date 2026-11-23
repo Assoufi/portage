@@ -61,9 +61,10 @@
         <div class="p-6">
             <form method="GET" action="{{ route('factures.index') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Numéro de facture</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Numéro(s) de facture</label>
                     <input type="text" name="numero_facture" value="{{ request('numero_facture') }}"
-                           placeholder="FACT-2024-00001…"
+                           placeholder="FACT-2024-00001, FACT-2024-00002…"
+                           title="Séparez plusieurs numéros par une virgule"
                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                 </div>
 
@@ -230,6 +231,13 @@
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    </a>
+                                    <a href="{{ route('factures.pdf', $facture) }}" target="_blank" rel="noopener"
+                                       class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition duration-150"
+                                       title="Imprimer / Télécharger le PDF">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" />
                                         </svg>
                                     </a>
 <a href="{{ route('factures.edit', $facture) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
