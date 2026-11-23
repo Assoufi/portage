@@ -281,28 +281,7 @@ class FactureController extends Controller
         $pdf = Pdf::loadView('factures.pdf', compact('facture', 'fournisseur', 'signe'))
             ->setPaper('a4');
 
-        return $pdf->stream($this->nomFichierPdf($facture));
-    }
-
-    /**
-     * Nom du fichier PDF : Facture_{client}_{fournisseur}_{numéro}.pdf
-     */
-    private function nomFichierPdf(Facture $facture): string
-    {
-        $nom = collect([
-            'Facture',
-            $facture->client?->nom,
-            $facture->fournisseur?->nom,
-            $facture->numero_facture,
-        ])
-            ->map(fn ($partie) => (string) $partie)
-            ->map(fn ($partie) => preg_replace('/[\\\\\/:*?"<>|]+/u', '-', $partie))
-            ->map(fn ($partie) => preg_replace('/\s+/u', '_', trim($partie)))
-            ->map(fn ($partie) => trim($partie, '._-'))
-            ->filter(fn ($partie) => $partie !== '')
-            ->implode('_');
-
-        return ($nom !== '' ? $nom : 'facture').'.pdf';
+        return $pdf->stream($facture->nomFichierPdf());
     }
 
     /**
@@ -417,7 +396,7 @@ class FactureController extends Controller
     private function dispatcherPapier(Facture $facture, string $directory, array &$stats, array &$fichiersPapier, array &$fichiersDejaGeneres): void
     {
         if (! isset($fichiersDejaGeneres[$facture->id])) {
-            $nom = 'facture-'.$facture->numero_facture.'.pdf';
+            $nom = $facture->nomFichierPdf();
             $chemin = $directory.DIRECTORY_SEPARATOR.$nom;
 
             \File::put($chemin, $this->genererPdf($facture, false));

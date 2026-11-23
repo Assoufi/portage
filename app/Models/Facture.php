@@ -122,6 +122,27 @@ class Facture extends Model
         return ! is_null($this->date_reglement);
     }
 
+    /**
+     * Nom du fichier PDF : Facture_{client}_{fournisseur}_{numéro}.pdf
+     */
+    public function nomFichierPdf(): string
+    {
+        $nom = collect([
+            'Facture',
+            $this->client?->nom,
+            $this->fournisseur?->nom,
+            $this->numero_facture,
+        ])
+            ->map(fn ($partie) => (string) $partie)
+            ->map(fn ($partie) => preg_replace('/[\\\\\/:*?"<>|]+/u', '-', $partie))
+            ->map(fn ($partie) => preg_replace('/\s+/u', '_', trim($partie)))
+            ->map(fn ($partie) => trim($partie, '._-'))
+            ->filter(fn ($partie) => $partie !== '')
+            ->implode('_');
+
+        return ($nom !== '' ? $nom : 'facture').'.pdf';
+    }
+
     public function getMontantTtcFormateAttribute(): string
     {
         return number_format($this->montant_ttc ?? 0, 2, ',', ' ');
