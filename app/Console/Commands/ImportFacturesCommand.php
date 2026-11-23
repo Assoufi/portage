@@ -9,6 +9,7 @@ use App\Models\Fournisseur;
 use App\Services\FactureService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ImportFacturesCommand extends Command
@@ -20,6 +21,8 @@ class ImportFacturesCommand extends Command
     protected $description = "Importe les factures d'un fichier Excel (factures + lignes de detail)";
 
     private array $clientsRef = [];
+
+    private array $clientsModeles = [];
 
     private array $fournisseursRef = [];
 
@@ -67,6 +70,7 @@ class ImportFacturesCommand extends Command
         }
 
         $this->clientsRef = [];
+        $this->clientsModeles = [];
         $this->fournisseursRef = [];
         $this->numerosSimules = [];
 
@@ -220,6 +224,10 @@ class ImportFacturesCommand extends Command
         $cle = 'client:'.mb_strtolower(trim($f['client']));
 
         if (isset($this->clientsRef[$cle])) {
+            if (isset($this->clientsModeles[$cle])) {
+                $this->mettreAJourClient($this->clientsModeles[$cle], $f, $execute);
+            }
+
             return $this->clientsRef[$cle];
         }
 
@@ -231,6 +239,9 @@ class ImportFacturesCommand extends Command
             if ($execute && $client->trashed()) {
                 $client->restore();
             }
+
+            $this->mettreAJourClient($client, $f, $execute);
+            $this->clientsModeles[$cle] = $client;
 
             return $this->clientsRef[$cle] = [
                 'id' => $client->id,
@@ -262,9 +273,10 @@ class ImportFacturesCommand extends Command
             'adresse' => $nomBd,
             'tva' => $tvaDerivee,
             'devise' => str_contains($f['devise'], '€') ? 'EUR' : 'MAD',
-            'periodicite' => $f['periodicite'] !== '' ? mb_substr($f['periodicite'], 0, 50) : null,
-            'mode_livraison' => $f['livraison'] !== '' ? [mb_substr($f['livraison'], 0, 50)] : null,
+            ...$this->champsClientDepuisLigne($f),
         ]);
+
+        $this->clientsModeles[$cle] = $client;
 
         return $this->clientsRef[$cle] = [
             'id' => $client->id,
@@ -273,6 +285,119 @@ class ImportFacturesCommand extends Command
             'tva' => (float) $client->tva,
             'delai_paiement' => null,
             'devise' => $client->devise,
+        ];
+    }
+
+    /**
+     * Champs client à renseigner depuis une ligne Excel (périodicité, livraison, contact).
+     * Les valeurs vides ne sont pas renvoyées : elles ne doivent pas écraser l'existant.
+     */
+    private function champsClientDepuisLigne(array $f): array
+    {
+        $champs = [];
+
+        $periodicite = $this->normaliserPeriodicite($f['periodicite'] ?? '');
+        if ($periodicite !== null) {
+            $champs['periodicite'] = $periodicite;
+        }
+
+        $livraison = $this->parseLivraison($f['livraison'] ?? '');
+        if ($livraison !== []) {
+            $champs['mode_livraison'] = $livraison;
+        }
+
+        $contact = $this->parseContact($f['contact'] ?? '');
+        if ($contact['telephone'] !== null) {
+            $champs['telephone'] = $contact['telephone'];
+        }
+        if ($contact['notifyto'] !== null) {
+            $champs['notifyto'] = $contact['notifyto'];
+        }
+        if ($contact['notifycc'] !== null) {
+            $champs['notifycc'] = $contact['notifycc'];
+        }
+
+        return $champs;
+    }
+
+    private function mettreAJourClient(Client $client, array $f, bool $execute): void
+    {
+        if (! $execute) {
+            return;
+        }
+
+        $client->fill($this->champsClientDepuisLigne($f));
+
+        if ($client->isDirty()) {
+            $client->save();
+        }
+    }
+
+    private function normaliserPeriodicite(string $valeur): ?string
+    {
+        $valeur = trim($valeur);
+
+        if ($valeur === '') {
+            return null;
+        }
+
+        $normalise = Str::ascii(mb_strtolower($valeur));
+
+        if (str_contains($normalise, 'mensu')) {
+            return 'Mensuelle';
+        }
+
+        if (str_contains($normalise, 'occas')) {
+            return 'Occasionnelle';
+        }
+
+        return mb_substr($valeur, 0, 50);
+    }
+
+    private function parseLivraison(string $valeur): array
+    {
+        $modes = [];
+
+        foreach (preg_split('/[;,]+/', $valeur) ?: [] as $mode) {
+            $mode = trim($mode);
+
+            if ($mode !== '' && ! in_array($mode, $modes, true)) {
+                $modes[] = mb_substr($mode, 0, 50);
+            }
+        }
+
+        return $modes;
+    }
+
+    /**
+     * Analyse le champ Contact : « email;email;téléphone » -> notifyto (1er email),
+     * notifycc (emails suivants) et telephone.
+     */
+    private function parseContact(string $valeur): array
+    {
+        $telephone = null;
+        $emails = [];
+
+        foreach (preg_split('/[;\n]+/', $valeur) ?: [] as $token) {
+            $token = trim($token);
+
+            if ($token === '') {
+                continue;
+            }
+
+            if (filter_var($token, FILTER_VALIDATE_EMAIL)) {
+                if (! in_array($token, $emails, true)) {
+                    $emails[] = $token;
+                }
+            } elseif ($telephone === null && preg_match('/\d/', $token)) {
+                $telephone = $token;
+            }
+        }
+
+        return [
+            'telephone' => $telephone !== null ? mb_substr($telephone, 0, 20) : null,
+            'notifyto' => $emails !== [] ? mb_substr($emails[0], 0, 250) : null,
+            'notifycc' => count($emails) > 1 ? mb_substr(implode(';', array_slice($emails, 1)), 0, 250) : null,
         ];
     }
 
