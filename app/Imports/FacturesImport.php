@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
@@ -65,7 +66,7 @@ class FacturesImport implements ToCollection, WithCalculatedFormulas
         $groupes = [];
 
         foreach ($rows->slice(1) as $ligne) {
-            $r = [];
+            $r = array_fill_keys(self::CHAMPS, '');
             foreach ($this->enTetes as $champ => $index) {
                 $r[$champ] = $this->texte($ligne[$index] ?? null);
             }
@@ -184,12 +185,9 @@ class FacturesImport implements ToCollection, WithCalculatedFormulas
     {
         $s = mb_strtolower(trim((string) $valeur));
         $s = (string) preg_replace('/\s+/', ' ', $s);
-        $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
-        if ($t === false) {
-            return $s;
-        }
+        $s = Str::ascii($s);
 
-        return (string) preg_replace('/[^a-z0-9 _-]/', '', $t);
+        return (string) preg_replace('/[^a-z0-9 _-]/', '', $s);
     }
 
     private function ligneVide(array $r): bool
