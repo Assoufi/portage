@@ -490,8 +490,8 @@
                 <ul class="text-sm text-gray-600 list-disc pl-5 mb-4 space-y-1">
                     <li><b>Papier</b> : génération d'un PDF non signé, livré en un seul ZIP.</li>
                     <li><b>Email</b> : envoi du PDF signé au destinataire du client (copie en CC).</li>
-                    <li><b>Whatsapp</b> : préparation des liens WhatsApp et téléchargement des PDF signés (ZIP).</li>
-                    <li><b>Mode vide</b> : téléchargement de la facture signée (ZIP).</li>
+                    <li><b>Whatsapp</b> : téléchargement de la facture signée (ZIP), sans lien WhatsApp.</li>
+                    <li><b>Téléphone renseigné / mode vide</b> : téléchargement de la facture signée (ZIP).</li>
                 </ul>
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="fermerDispatcher()"
@@ -542,7 +542,7 @@
             const s = data.stats;
 
             let html = `
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                     <div class="bg-gray-50 rounded-lg p-3 text-center">
                         <p class="text-2xl font-bold text-gray-900">${s.papier ?? 0}</p>
                         <p class="text-xs text-gray-500">PDF Papier (ZIP)</p>
@@ -550,10 +550,6 @@
                     <div class="bg-gray-50 rounded-lg p-3 text-center">
                         <p class="text-2xl font-bold text-green-600">${s.email ?? 0}</p>
                         <p class="text-xs text-gray-500">Emails envoyés</p>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-3 text-center">
-                        <p class="text-2xl font-bold text-blue-600">${s.whatsapp ?? 0}</p>
-                        <p class="text-xs text-gray-500">Liens WhatsApp</p>
                     </div>
                     <div class="bg-gray-50 rounded-lg p-3 text-center">
                         <p class="text-2xl font-bold text-purple-600">${s.signe ?? 0}</p>
@@ -575,26 +571,6 @@
                        class="block w-full text-center bg-purple-600 hover:bg-purple-800 text-white font-bold py-2 px-4 rounded-lg transition duration-300 mb-4">
                         Télécharger les PDF signés (ZIP)
                     </a>`;
-            }
-
-            if ((data.whatsapp ?? []).length) {
-                html += `
-                    <p class="text-sm font-medium text-gray-700 mb-2">Livraisons WhatsApp :</p>
-                    <ul class="text-sm mb-4 space-y-1 max-h-40 overflow-y-auto">
-                        ${data.whatsapp.map(w => `
-                            <li class="flex items-center justify-between gap-2">
-                                <span class="font-mono text-gray-700">${escapeHtml(w.numero_facture)}</span>
-                                <span class="text-gray-500 truncate">${escapeHtml(w.telephone)}</span>
-                                <a href="${w.url}" target="_blank" rel="noopener"
-                                   class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-1 px-3 rounded transition duration-150 whitespace-nowrap">
-                                    Ouvrir WhatsApp
-                                </a>
-                            </li>`).join('')}
-                    </ul>
-                    <button type="button" onclick="ouvrirToutWhatsapp()"
-                            class="text-xs text-green-700 hover:text-green-900 underline mb-4">
-                        Tout ouvrir (une fenêtre à la fois)
-                    </button>`;
             }
 
             if ((data.erreurs ?? []).length) {
@@ -640,11 +616,6 @@
             }
         }
 
-        function ouvrirToutWhatsapp() {
-            const liens = Array.from(document.querySelectorAll('#dispatcherBody a[href^="https://wa.me/"]'));
-            liens.forEach((lien, i) => setTimeout(() => window.open(lien.href, '_blank'), i * 800));
-        }
-
         function escapeHtml(str) {
             return String(str ?? '').replace(/[&<>"']/g, c => ({
                 '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -658,7 +629,6 @@
             fermerDispatcher: fermerDispatcher,
             lancerDispatcher: lancerDispatcher,
             afficherResultatsDispatcher: afficherResultatsDispatcher,
-            ouvrirToutWhatsapp: ouvrirToutWhatsapp,
         });
     });
 </script>

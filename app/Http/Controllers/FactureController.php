@@ -346,7 +346,10 @@ class FactureController extends Controller
      * selon le mode_livraison de chaque client :
      *  - "Papier"   : génère le PDF non signé, zippé en un ZIP téléchargeable ;
      *  - "Email"    : envoie le PDF signé en pièce jointe (notifyto / notifycc) ;
-     *  - "Whatsapp" : renvoie les liens wa.me à ouvrir côté client.
+     *  - "Whatsapp" : ne génère plus de lien wa.me : la facture signée est
+     *                 livrée dans le ZIP téléchargeable.
+     * La facture signée est aussi générée dès que le client a un téléphone,
+     * ou qu'il n'a aucun mode de livraison défini.
      */
     public function dispatcher(Request $request)
     {
@@ -371,12 +374,10 @@ class FactureController extends Controller
         $stats = [
             'papier' => 0,
             'email' => 0,
-            'whatsapp' => 0,
             'signe' => 0,
             'sans_mode' => 0,
         ];
         $erreurs = [];
-        $whatsapp = [];
         $fichiersPapier = []; // [chemin => nom de fichier dans le ZIP]
         $fichiersDejaGeneres = []; // facture_id => chemin (évite les doublons si Papier + Email)
         $fichiersSignes = []; // [chemin => nom de fichier dans le ZIP signé]
@@ -388,10 +389,9 @@ class FactureController extends Controller
             $client = $facture->client;
             $modes = collect($client?->mode_livraison ?? []);
 
-            // Mode vide ou "Whatsapp" : la facture signée est générée et
-            // livrée dans un ZIP téléchargeable (les liens wa.me restent
-            // préparés pour Whatsapp).
-            if ($modes->isEmpty() || $modes->contains('Whatsapp')) {
+            // Facture signée si : mode vide, "Whatsapp" coché, ou client
+            // disposant d'un téléphone. Livrée dans un ZIP téléchargeable.
+            if ($modes->isEmpty() || $modes->contains('Whatsapp') || filled($client?->telephone)) {
                 try {
                     $this->dispatcherSigne($facture, $signedDirectory, $stats, $fichiersSignes, $fichiersSignesDejaGeneres);
                 } catch (\Throwable $e) {
@@ -414,7 +414,7 @@ class FactureController extends Controller
                     match ($mode) {
                         'Papier' => $this->dispatcherPapier($facture, $directory, $stats, $fichiersPapier, $fichiersDejaGeneres),
                         'Email' => $this->dispatcherEmail($facture, $stats, $erreurs),
-                        'Whatsapp' => $this->dispatcherWhatsapp($facture, $stats, $whatsapp, $erreurs),
+                        'Whatsapp' => null, // livraison assurée par dispatcherSigne()
                         default => $erreurs[] = [
                             'numero_facture' => $facture->numero_facture,
                             'message' => "Mode de livraison inconnu : {$mode}.",
@@ -449,7 +449,6 @@ class FactureController extends Controller
             'stats' => $stats,
             'zip_url' => $zipToken !== null ? route('factures.dispatcher-telecharger', $token) : null,
             'zip_signe_url' => $zipSigneToken !== null ? route('factures.dispatcher-telecharger-signes', $token) : null,
-            'whatsapp' => $whatsapp,
             'erreurs' => $erreurs,
         ]);
     }
@@ -473,9 +472,10 @@ class FactureController extends Controller
     }
 
     /**
-     * Livraison "PDF signé" : mode vide ou Whatsapp. Génère le PDF signé
-     * pour un ZIP téléchargeable. Les fichiers sont isolés dans un
-     * sous-répertoire afin de ne jamais écraser le PDF non signé "Papier".
+     * Livraison "PDF signé" : mode vide, Whatsapp coché ou téléphone
+     * renseigné. Génère le PDF signé pour un ZIP téléchargeable. Les
+     * fichiers sont isolés dans un sous-répertoire afin de ne jamais
+     * écraser le PDF non signé "Papier".
      */
     private function dispatcherSigne(Facture $facture, string $directory, array &$stats, array &$fichiersSignes, array &$fichiersSignesDejaGeneres): void
     {
@@ -529,32 +529,6 @@ class FactureController extends Controller
     }
 
     /**
-     * Livraison "Whatsapp" : prépare le lien wa.me du client.
-     */
-    private function dispatcherWhatsapp(Facture $facture, array &$stats, array &$whatsapp, array &$erreurs): void
-    {
-        $telephone = $this->numeroWhatsapp($facture->client?->telephone);
-
-        if ($telephone === null) {
-            $erreurs[] = [
-                'numero_facture' => $facture->numero_facture,
-                'message' => 'Mode Whatsapp : numéro de téléphone manquant pour le client '
-                    .($facture->client?->nom ?? '—').'.',
-            ];
-
-            return;
-        }
-
-        $whatsapp[] = [
-            'numero_facture' => $facture->numero_facture,
-            'client' => $facture->client->nom,
-            'telephone' => $telephone,
-            'url' => 'https://wa.me/'.$telephone,
-        ];
-        $stats['whatsapp']++;
-    }
-
-    /**
      * Normalise une liste d'adresses email (séparées par , ou ;) en tableau.
      */
     private function destinatairesPropres(?string $champ): array
@@ -569,17 +543,6 @@ class FactureController extends Controller
             ->unique()
             ->values()
             ->all();
-    }
-
-    /**
-     * Nettoie un numéro de téléphone pour l'API wa.me (chiffres uniquement),
-     * en conservant l'indicateur international s'il est présent.
-     */
-    private function numeroWhatsapp(?string $telephone): ?string
-    {
-        $numero = preg_replace('/[^0-9]/', '', $telephone ?? '');
-
-        return $numero !== '' ? $numero : null;
     }
 
     /**
@@ -642,8 +605,8 @@ class FactureController extends Controller
 
     /**
      * Téléchargement du ZIP des factures signées générées par le Dispatcher
-     * pour les clients dont le mode de livraison est vide ou "Whatsapp"
-     * (renvoie le fichier, supprimé après l'envoi).
+     * pour les clients sans mode de livraison, avec "Whatsapp" coché ou
+     * disposant d'un téléphone (renvoie le fichier, supprimé après l'envoi).
      */
     public function dispatcherTelechargerSignes(string $token)
     {

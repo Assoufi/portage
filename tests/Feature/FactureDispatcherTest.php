@@ -28,12 +28,12 @@ class FactureDispatcherTest extends TestCase
         parent::tearDown();
     }
 
-    private function creerFacture(array $modeLivraison): Facture
+    private function creerFacture(array $modeLivraison, ?string $telephone = '0612345678'): Facture
     {
         $fournisseur = Fournisseur::factory()->create();
         $client = Client::factory()->create([
             'mode_livraison' => $modeLivraison,
-            'telephone' => '0612345678',
+            'telephone' => $telephone,
             'notifyto' => 'destinataire@example.com',
         ]);
         $consultant = Consultant::factory()->create();
@@ -58,33 +58,34 @@ class FactureDispatcherTest extends TestCase
             ->json();
     }
 
-    public function test_mode_vide_genere_un_zip_signe_sans_erreur(): void
+    public function test_mode_vide_genere_un_zip_signe_meme_sans_telephone(): void
     {
-        $data = $this->dispatcher($this->creerFacture([]));
+        $data = $this->dispatcher($this->creerFacture([], null));
 
         $this->assertSame(1, $data['stats']['signe']);
         $this->assertSame(1, $data['stats']['sans_mode']);
         $this->assertNotNull($data['zip_signe_url']);
         $this->assertNull($data['zip_url']);
+        $this->assertArrayNotHasKey('whatsapp', $data);
         $this->assertSame([], $data['erreurs']);
     }
 
-    public function test_mode_whatsapp_genere_zip_signe_et_lien(): void
+    public function test_mode_whatsapp_genere_zip_signe_sans_lien(): void
     {
-        $data = $this->dispatcher($this->creerFacture(['Whatsapp']));
+        $data = $this->dispatcher($this->creerFacture(['Whatsapp'], null));
 
         $this->assertSame(1, $data['stats']['signe']);
-        $this->assertSame(1, $data['stats']['whatsapp']);
         $this->assertNotNull($data['zip_signe_url']);
-        $this->assertCount(1, $data['whatsapp']);
-        $this->assertSame('https://wa.me/0612345678', $data['whatsapp'][0]['url']);
+        $this->assertArrayNotHasKey('whatsapp', $data);
+        $this->assertArrayNotHasKey('whatsapp', $data['stats']);
+        $this->assertSame([], $data['erreurs']);
     }
 
-    public function test_mode_email_reste_inchange_sans_zip_signe(): void
+    public function test_mode_email_sans_telephone_reste_inchange(): void
     {
         Mail::fake();
 
-        $data = $this->dispatcher($this->creerFacture(['Email']));
+        $data = $this->dispatcher($this->creerFacture(['Email'], null));
 
         $this->assertSame(1, $data['stats']['email']);
         $this->assertSame(0, $data['stats']['signe']);
@@ -92,13 +93,35 @@ class FactureDispatcherTest extends TestCase
         Mail::assertSent(FactureLivraison::class);
     }
 
-    public function test_mode_papier_reste_non_signe_dans_zip(): void
+    public function test_telephone_renseigne_genere_aussi_la_facture_signee_pour_email(): void
     {
-        $data = $this->dispatcher($this->creerFacture(['Papier']));
+        Mail::fake();
+
+        $data = $this->dispatcher($this->creerFacture(['Email'], '0612345678'));
+
+        $this->assertSame(1, $data['stats']['email']);
+        $this->assertSame(1, $data['stats']['signe']);
+        $this->assertNotNull($data['zip_signe_url']);
+        Mail::assertSent(FactureLivraison::class);
+    }
+
+    public function test_mode_papier_sans_telephone_reste_non_signe(): void
+    {
+        $data = $this->dispatcher($this->creerFacture(['Papier'], null));
 
         $this->assertSame(1, $data['stats']['papier']);
         $this->assertSame(0, $data['stats']['signe']);
         $this->assertNotNull($data['zip_url']);
         $this->assertNull($data['zip_signe_url']);
+    }
+
+    public function test_mode_papier_avec_telephone_genere_les_deux_zip(): void
+    {
+        $data = $this->dispatcher($this->creerFacture(['Papier'], '0612345678'));
+
+        $this->assertSame(1, $data['stats']['papier']);
+        $this->assertSame(1, $data['stats']['signe']);
+        $this->assertNotNull($data['zip_url']);
+        $this->assertNotNull($data['zip_signe_url']);
     }
 }
