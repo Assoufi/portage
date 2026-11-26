@@ -77,6 +77,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('factures.dispatcher');
     Route::get('factures/dispatcher/telecharger/{token}', [FactureController::class, 'dispatcherTelecharger'])
         ->name('factures.dispatcher-telecharger');
+    Route::get('factures/dispatcher/telecharger-signes/{token}', [FactureController::class, 'dispatcherTelechargerSignes'])
+        ->name('factures.dispatcher-telecharger-signes');
     Route::get('factures/numero-suivant', [FactureController::class, 'numeroSuivant'])
         ->name('factures.numero-suivant');
     Route::get('factures/export', [FactureController::class, 'export'])

@@ -15,6 +15,7 @@ use App\Support\EmailLogger;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -26,9 +27,29 @@ class FactureController extends Controller
 
     public function index(Request $request)
     {
-        $query = $this->buildIndexQuery($request);
-
-        $factures = $query->paginate(15)->withQueryString();
+        // Colonnes strictement nécessaires à l'affichage : évite de rapatrier
+        // les TEXT (remarques) et champs de règlement inutiles sur chaque page.
+        $factures = $this->buildIndexQuery($request)
+            ->with([
+                'client:id,nom',
+                'fournisseur:id,nom',
+                'consultant:id,nom',
+            ])
+            ->select([
+                'id',
+                'numero_facture',
+                'fournisseur_id',
+                'client_id',
+                'consultant_id',
+                'date_facture',
+                'date_echeance',
+                'montant_ttc',
+                'total_ht',
+                'statut',
+                'date_reglement',
+            ])
+            ->paginate(15)
+            ->withQueryString();
         $clientSelectionne = $request->filled('client_id')
             ? Client::find($request->client_id)
             : null;
@@ -88,7 +109,15 @@ class FactureController extends Controller
         }
 
         if ($request->filled('periode')) {
-            $query->where('periode', $request->periode);
+            // 'periode' est stockée comme un DATE (1er jour du mois). Le champ
+            // du formulaire envoie "Y-m" : une égalité directe ne matcherait rien.
+            // On filtre par intervalle pour rester index-friendly.
+            try {
+                $debut = Carbon::createFromFormat('Y-m', $request->periode)->startOfMonth();
+                $query->whereBetween('periode', [$debut->toDateString(), $debut->copy()->endOfMonth()->toDateString()]);
+            } catch (\Throwable $e) {
+                // Période invalide : on ignore le filtre plutôt que de casser la page.
+            }
         }
 
         if ($request->filled('statut')) {
@@ -117,9 +146,20 @@ class FactureController extends Controller
             $query->recherche($request->recherche);
         }
 
-        $sort = $request->get('sort', 'date_facture');
-        $direction = $request->get('direction', 'desc');
-        $query->orderBy($sort, $direction);
+        // Tri : n'accepter que des colonnes connues (évite l'injection SQL via
+        // orderBy) et limiter la direction à asc/desc.
+        $colonnesTriables = [
+            'date_facture', 'date_echeance', 'date_reception', 'numero_facture',
+            'montant_ttc', 'total_ht', 'created_at', 'id',
+        ];
+        $sort = in_array($request->get('sort'), $colonnesTriables, true)
+            ? $request->get('sort')
+            : 'date_facture';
+        $direction = strtolower((string) $request->get('direction', 'desc')) === 'asc'
+            ? 'asc'
+            : 'desc';
+
+        $query->orderBy($sort, $direction)->orderBy('id', 'desc');
 
         return $query;
     }
@@ -332,24 +372,39 @@ class FactureController extends Controller
             'papier' => 0,
             'email' => 0,
             'whatsapp' => 0,
+            'signe' => 0,
             'sans_mode' => 0,
         ];
         $erreurs = [];
         $whatsapp = [];
         $fichiersPapier = []; // [chemin => nom de fichier dans le ZIP]
         $fichiersDejaGeneres = []; // facture_id => chemin (évite les doublons si Papier + Email)
+        $fichiersSignes = []; // [chemin => nom de fichier dans le ZIP signé]
+        $fichiersSignesDejaGeneres = []; // facture_id => chemin (évite les doublons)
+        $signedDirectory = $directory.DIRECTORY_SEPARATOR.'signes';
+        \File::ensureDirectoryExists($signedDirectory);
 
         foreach ($factures as $facture) {
             $client = $facture->client;
             $modes = collect($client?->mode_livraison ?? []);
 
+            // Mode vide ou "Whatsapp" : la facture signée est générée et
+            // livrée dans un ZIP téléchargeable (les liens wa.me restent
+            // préparés pour Whatsapp).
+            if ($modes->isEmpty() || $modes->contains('Whatsapp')) {
+                try {
+                    $this->dispatcherSigne($facture, $signedDirectory, $stats, $fichiersSignes, $fichiersSignesDejaGeneres);
+                } catch (\Throwable $e) {
+                    \Log::error("Dispatcher facture {$facture->numero_facture} (signé) : ".$e->getMessage());
+                    $erreurs[] = [
+                        'numero_facture' => $facture->numero_facture,
+                        'message' => 'Erreur lors de la génération du PDF signé : '.$e->getMessage(),
+                    ];
+                }
+            }
+
             if ($modes->isEmpty()) {
                 $stats['sans_mode']++;
-                $erreurs[] = [
-                    'numero_facture' => $facture->numero_facture,
-                    'message' => 'Aucun mode de livraison défini pour le client '
-                        .($client?->nom ?? '—').'.',
-                ];
 
                 continue;
             }
@@ -375,6 +430,14 @@ class FactureController extends Controller
             }
         }
 
+        // Le ZIP signé est créé avant le ZIP Papier : compresser() supprime le
+        // répertoire qu'on lui passe, or le sous-répertoire "signes" y réside.
+        $zipSigneToken = null;
+        if ($fichiersSignes !== []) {
+            $zipSigneToken = 'factures-signees-'.$token.'.zip';
+            $this->compresser($signedDirectory, $fichiersSignes, storage_path('app/dispatches/'.$zipSigneToken));
+        }
+
         $zipToken = null;
         if ($fichiersPapier !== []) {
             $zipToken = 'factures-papier-'.$token.'.zip';
@@ -385,6 +448,7 @@ class FactureController extends Controller
             'success' => true,
             'stats' => $stats,
             'zip_url' => $zipToken !== null ? route('factures.dispatcher-telecharger', $token) : null,
+            'zip_signe_url' => $zipSigneToken !== null ? route('factures.dispatcher-telecharger-signes', $token) : null,
             'whatsapp' => $whatsapp,
             'erreurs' => $erreurs,
         ]);
@@ -406,6 +470,26 @@ class FactureController extends Controller
 
         $fichiersPapier[$fichiersDejaGeneres[$facture->id]] = basename($fichiersDejaGeneres[$facture->id]);
         $stats['papier']++;
+    }
+
+    /**
+     * Livraison "PDF signé" : mode vide ou Whatsapp. Génère le PDF signé
+     * pour un ZIP téléchargeable. Les fichiers sont isolés dans un
+     * sous-répertoire afin de ne jamais écraser le PDF non signé "Papier".
+     */
+    private function dispatcherSigne(Facture $facture, string $directory, array &$stats, array &$fichiersSignes, array &$fichiersSignesDejaGeneres): void
+    {
+        if (! isset($fichiersSignesDejaGeneres[$facture->id])) {
+            $nom = $facture->nomFichierPdf();
+            $chemin = $directory.DIRECTORY_SEPARATOR.$nom;
+
+            \File::put($chemin, $this->genererPdf($facture, true));
+
+            $fichiersSignesDejaGeneres[$facture->id] = $chemin;
+        }
+
+        $fichiersSignes[$fichiersSignesDejaGeneres[$facture->id]] = basename($fichiersSignesDejaGeneres[$facture->id]);
+        $stats['signe']++;
     }
 
     /**
@@ -554,6 +638,26 @@ class FactureController extends Controller
         }
 
         return response()->download($chemin, 'factures-papier-'.$token.'.zip')->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Téléchargement du ZIP des factures signées générées par le Dispatcher
+     * pour les clients dont le mode de livraison est vide ou "Whatsapp"
+     * (renvoie le fichier, supprimé après l'envoi).
+     */
+    public function dispatcherTelechargerSignes(string $token)
+    {
+        if (! preg_match('/^[A-Za-z0-9_-]+$/', $token)) {
+            abort(404);
+        }
+
+        $chemin = storage_path('app/dispatches/factures-signees-'.$token.'.zip');
+
+        if (! is_file($chemin)) {
+            abort(404, 'Livrable introuvable (expiré ou déjà téléchargé).');
+        }
+
+        return response()->download($chemin, 'factures-signees-'.$token.'.zip')->deleteFileAfterSend(true);
     }
 
     public function edit(Facture $facture)

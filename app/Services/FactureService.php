@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\DetailFacture;
 use App\Models\Facture;
 use App\Support\NumeroRetry;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class FactureService
@@ -125,32 +126,35 @@ class FactureService
 
     public function getStats(): array
     {
-        $totalFactures = Facture::count();
-        $montantTotal = Facture::sum('montant_ttc');
-        $montantTotalHt = Facture::sum('total_ht');
-        $facturesReglees = Facture::reglee()->count();
-        $montantRegle = Facture::reglee()->sum('montant_ttc');
-        $facturesEnAttente = Facture::nonReglee()->actif()->count();
-        $montantEnAttente = Facture::nonReglee()->actif()->sum('montant_ttc');
-        $facturesEnRetard = Facture::nonReglee()
-            ->actif()
-            ->where('date_echeance', '<', now())
-            ->count();
-        $montantEnRetard = Facture::nonReglee()
-            ->actif()
-            ->where('date_echeance', '<', now())
-            ->sum('montant_ttc');
+        // Une seule passe sur la table (au lieu de 9 requêtes count()/sum())
+        // + cache court : les stats globales ne changent pas à chaque filtre.
+        return Cache::remember('factures.stats', now()->addMinutes(2), function () {
+            $maintenant = now()->toDateTimeString();
 
-        return compact(
-            'totalFactures',
-            'montantTotal',
-            'montantTotalHt',
-            'facturesReglees',
-            'montantRegle',
-            'facturesEnAttente',
-            'montantEnAttente',
-            'facturesEnRetard',
-            'montantEnRetard'
-        );
+            $row = Facture::query()->selectRaw(
+                'COUNT(*) AS totalFactures,
+                 COALESCE(SUM(montant_ttc), 0) AS montantTotal,
+                 COALESCE(SUM(total_ht), 0) AS montantTotalHt,
+                 COALESCE(SUM(CASE WHEN date_reglement IS NOT NULL THEN 1 ELSE 0 END), 0) AS facturesReglees,
+                 COALESCE(SUM(CASE WHEN date_reglement IS NOT NULL THEN montant_ttc ELSE 0 END), 0) AS montantRegle,
+                 COALESCE(SUM(CASE WHEN date_reglement IS NULL AND statut = 1 THEN 1 ELSE 0 END), 0) AS facturesEnAttente,
+                 COALESCE(SUM(CASE WHEN date_reglement IS NULL AND statut = 1 THEN montant_ttc ELSE 0 END), 0) AS montantEnAttente,
+                 COALESCE(SUM(CASE WHEN date_reglement IS NULL AND statut = 1 AND date_echeance < ? THEN 1 ELSE 0 END), 0) AS facturesEnRetard,
+                 COALESCE(SUM(CASE WHEN date_reglement IS NULL AND statut = 1 AND date_echeance < ? THEN montant_ttc ELSE 0 END), 0) AS montantEnRetard',
+                [$maintenant, $maintenant]
+            )->first();
+
+            return [
+                'totalFactures' => (int) $row->totalFactures,
+                'montantTotal' => (float) $row->montantTotal,
+                'montantTotalHt' => (float) $row->montantTotalHt,
+                'facturesReglees' => (int) $row->facturesReglees,
+                'montantRegle' => (float) $row->montantRegle,
+                'facturesEnAttente' => (int) $row->facturesEnAttente,
+                'montantEnAttente' => (float) $row->montantEnAttente,
+                'facturesEnRetard' => (int) $row->facturesEnRetard,
+                'montantEnRetard' => (float) $row->montantEnRetard,
+            ];
+        });
     }
 }

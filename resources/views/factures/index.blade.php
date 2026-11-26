@@ -59,7 +59,7 @@
 
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
         <div class="p-6">
-            <form method="GET" action="{{ route('factures.index') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <form method="GET" action="{{ route('factures.index') }}" id="filtreFacturesForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Numéro(s) de facture</label>
                     <input type="text" name="numero_facture" value="{{ request('numero_facture') }}"
@@ -336,6 +336,17 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Retour visuel immédiat pendant le filtrage (requête serveur + rendu).
+        const filtreForm = document.getElementById('filtreFacturesForm');
+        if (filtreForm) {
+            filtreForm.addEventListener('submit', function () {
+                filtreForm.querySelectorAll('button[type=submit]').forEach(function (btn) {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-wait');
+                });
+            });
+        }
+
         initAutocomplete({
             inputId: 'consultantSearch',
             idInputId: 'consultantId',
@@ -479,7 +490,8 @@
                 <ul class="text-sm text-gray-600 list-disc pl-5 mb-4 space-y-1">
                     <li><b>Papier</b> : génération d'un PDF non signé, livré en un seul ZIP.</li>
                     <li><b>Email</b> : envoi du PDF signé au destinataire du client (copie en CC).</li>
-                    <li><b>Whatsapp</b> : préparation des liens WhatsApp à ouvrir après le traitement.</li>
+                    <li><b>Whatsapp</b> : préparation des liens WhatsApp et téléchargement des PDF signés (ZIP).</li>
+                    <li><b>Mode vide</b> : téléchargement de la facture signée (ZIP).</li>
                 </ul>
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="fermerDispatcher()"
@@ -530,7 +542,7 @@
             const s = data.stats;
 
             let html = `
-                <div class="grid grid-cols-3 gap-3 mb-4">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                     <div class="bg-gray-50 rounded-lg p-3 text-center">
                         <p class="text-2xl font-bold text-gray-900">${s.papier ?? 0}</p>
                         <p class="text-xs text-gray-500">PDF Papier (ZIP)</p>
@@ -543,6 +555,10 @@
                         <p class="text-2xl font-bold text-blue-600">${s.whatsapp ?? 0}</p>
                         <p class="text-xs text-gray-500">Liens WhatsApp</p>
                     </div>
+                    <div class="bg-gray-50 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-purple-600">${s.signe ?? 0}</p>
+                        <p class="text-xs text-gray-500">PDF signés (ZIP)</p>
+                    </div>
                 </div>`;
 
             if (data.zip_url) {
@@ -550,6 +566,14 @@
                     <a href="${data.zip_url}" download
                        class="block w-full text-center bg-gray-700 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded-lg transition duration-300 mb-4">
                         Télécharger les PDF (ZIP)
+                    </a>`;
+            }
+
+            if (data.zip_signe_url) {
+                html += `
+                    <a href="${data.zip_signe_url}" download
+                       class="block w-full text-center bg-purple-600 hover:bg-purple-800 text-white font-bold py-2 px-4 rounded-lg transition duration-300 mb-4">
+                        Télécharger les PDF signés (ZIP)
                     </a>`;
             }
 
@@ -584,7 +608,7 @@
             }
 
             if (s.sans_mode) {
-                html += `<p class="text-xs text-gray-500 mb-2">${s.sans_mode} facture(s) ignorée(s) (client sans mode de livraison).</p>`;
+                html += `<p class="text-xs text-gray-500 mb-2">${s.sans_mode} facture(s) sans mode de livraison : PDF signé généré dans le ZIP.</p>`;
             }
 
             html += `
@@ -597,14 +621,17 @@
 
             document.getElementById('dispatcherBody').innerHTML = html;
 
-            if (data.zip_url) {
-                const lien = document.createElement('a');
-                lien.href = data.zip_url;
-                lien.download = '';
-                document.body.appendChild(lien);
-                lien.click();
-                lien.remove();
-            }
+            // Téléchargement automatique : Papier (non signé) puis signés.
+            [data.zip_url, data.zip_signe_url].filter(Boolean).forEach(function (url, index) {
+                setTimeout(function () {
+                    const lien = document.createElement('a');
+                    lien.href = url;
+                    lien.download = '';
+                    document.body.appendChild(lien);
+                    lien.click();
+                    lien.remove();
+                }, index * 400);
+            });
 
             if ((data.erreurs ?? []).length) {
                 window.notify?.warning('Dispatch terminé, vérifiez les erreurs.');

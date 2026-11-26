@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Cache;
 
 class Facture extends Model
 {
@@ -58,6 +59,20 @@ class Facture extends Model
         'statut' => true,
         'taux_tva' => 20.00,
     ];
+
+    /**
+     * Toute écriture sur une facture invalide les statistiques mises en cache
+     * (page index). Les mises à jour de masse via Query Builder ne déclenchent
+     * pas ces événements : le TTL court du cache sert alors de filet de sécurité.
+     */
+    protected static function booted(): void
+    {
+        $flushStats = static fn () => Cache::forget('factures.stats');
+
+        static::saved($flushStats);
+        static::deleted($flushStats);
+        static::restored($flushStats);
+    }
 
     public function details(): HasMany
     {
@@ -313,10 +328,23 @@ class Facture extends Model
 
     public function scopeRecherche($query, $terme)
     {
-        return $query->where('numero_facture', 'LIKE', "%{$terme}%")
-            ->orWhere('beneficiaire', 'LIKE', "%{$terme}%")
-            ->orWhereHas('client', fn ($q) => $q->where('nom', 'LIKE', "%{$terme}%"))
-            ->orWhereHas('fournisseur', fn ($q) => $q->where('nom', 'LIKE', "%{$terme}%"))
-            ->orWhereHas('consultant', fn ($q) => $q->where('nom', 'LIKE', "%{$terme}%"));
+        $terme = trim((string) $terme);
+
+        if ($terme === '') {
+            return $query;
+        }
+
+        $like = '%'.$terme.'%';
+
+        // Toutes les clauses OR doivent être regroupées dans une seule parenthèse,
+        // sinon elles "fuient" et annulent les autres filtres (client, période…)
+        // ainsi que le scope SoftDeletes.
+        return $query->where(function ($q) use ($like) {
+            $q->where('numero_facture', 'LIKE', $like)
+                ->orWhere('beneficiaire', 'LIKE', $like)
+                ->orWhereHas('client', fn ($c) => $c->where('nom', 'LIKE', $like))
+                ->orWhereHas('fournisseur', fn ($f) => $f->where('nom', 'LIKE', $like))
+                ->orWhereHas('consultant', fn ($c) => $c->where('nom', 'LIKE', $like));
+        });
     }
 }
