@@ -116,8 +116,8 @@
 
                     <div>
                         <label for="periode" class="block text-sm font-medium text-gray-700 mb-2">Période</label>
-                        <input type="month" name="periode" id="periode"
-                               value="{{ old('periode', $clone['periode'] ?? date('Y-m')) }}"
+                        <input type="date" name="periode" id="periode"
+                               value="{{ old('periode', $clone['periode'] ?? date('Y-m-d')) }}"
                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('periode') border-red-500 @enderror">
                         @error('periode')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
