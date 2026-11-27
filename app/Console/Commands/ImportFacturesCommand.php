@@ -6,9 +6,11 @@ use App\Imports\FacturesImport;
 use App\Models\Client;
 use App\Models\Facture;
 use App\Models\Fournisseur;
+use App\Services\FactureRattachementService;
 use App\Services\FactureService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -28,7 +30,7 @@ class ImportFacturesCommand extends Command
 
     private array $numerosSimules = [];
 
-    public function handle(FactureService $service): int
+    public function handle(FactureService $service, FactureRattachementService $rattachement): int
     {
         $chemin = storage_path('app/'.$this->option('file'));
 
@@ -74,7 +76,16 @@ class ImportFacturesCommand extends Command
         $this->fournisseursRef = [];
         $this->numerosSimules = [];
 
-        $rapport = ['importees' => [], 'ecartsTva' => [], 'doublons' => [], 'echecs' => []];
+        $rapport = [
+            'importees' => [],
+            'ecartsTva' => [],
+            'doublons' => [],
+            'echecs' => [],
+            'rattachement' => null,
+        ];
+
+        $idsImportes = [];
+        $lignesSimulees = [];
 
         if ($execute) {
             DB::beginTransaction();
@@ -87,6 +98,14 @@ class ImportFacturesCommand extends Command
 
                     if ($resultat !== null) {
                         $rapport['importees'][] = $resultat;
+
+                        if ($execute && ($resultat['id'] ?? '-') !== '-') {
+                            $idsImportes[] = (int) $resultat['id'];
+                        }
+
+                        if (! $execute) {
+                            $lignesSimulees[] = $resultat;
+                        }
                     }
                 } catch (\Throwable $e) {
                     $rapport['echecs'][] = sprintf(
@@ -98,6 +117,14 @@ class ImportFacturesCommand extends Command
                     );
                 }
             }
+
+            $rapport['rattachement'] = $this->rattacherFactures(
+                $rattachement,
+                $idsImportes,
+                $lignesSimulees,
+                $execute,
+                $rapport
+            );
 
             if ($execute) {
                 DB::commit();
@@ -116,6 +143,41 @@ class ImportFacturesCommand extends Command
         $this->reporter($rapport);
 
         return 0;
+    }
+
+    /**
+     * Rattache les factures créées à un consultant puis à une mission.
+     * Un échec est journalisé et reporté, mais ne remet pas en cause l'import :
+     * les factures déjà créées sont conservées et validées par le commit.
+     */
+    private function rattacherFactures(
+        FactureRattachementService $service,
+        array $idsImportes,
+        array $lignesSimulees,
+        bool $execute,
+        array &$rapport
+    ): array {
+        try {
+            return $execute
+                ? $service->rattacher($idsImportes)
+                : $service->previsualiser($lignesSimulees);
+        } catch (\Throwable $e) {
+            Log::error('ImportFactures.rattachement_echec', [
+                'execute' => $execute,
+                'factures' => count($idsImportes),
+                'error' => $e->getMessage(),
+            ]);
+
+            $rapport['echecs'][] = 'Rattachement consultants/missions : '.$e->getMessage();
+
+            return [
+                'consultants' => 0,
+                'missions' => 0,
+                'non_rattachees' => [],
+                'ambigus' => [],
+                'erreur' => $e->getMessage(),
+            ];
+        }
     }
 
     private function importerFacture(array $f, FactureService $service, bool $execute, array &$rapport): ?array
@@ -182,6 +244,11 @@ class ImportFacturesCommand extends Command
                 'echeance' => $f['date']->copy()->addDays($client['delai_paiement'] ?? 60)->format('d/m/Y'),
                 'total_ht' => $totalHt,
                 'montant_ttc' => $ttcCalcule,
+                'ligne' => $f['ligne'],
+                'beneficiaire' => $f['beneficiaire'] !== '' ? $f['beneficiaire'] : null,
+                'client_id' => $client['id'],
+                'fournisseur_id' => $fournisseur['id'],
+                'date_facture' => $f['date']->toDateString(),
             ];
         }
 
@@ -216,6 +283,11 @@ class ImportFacturesCommand extends Command
             'date' => $f['date']->format('d/m/Y'),
             'total_ht' => $facture->total_ht,
             'montant_ttc' => $facture->montant_ttc,
+            'ligne' => $f['ligne'],
+            'beneficiaire' => $f['beneficiaire'] !== '' ? $f['beneficiaire'] : null,
+            'client_id' => $client['id'],
+            'fournisseur_id' => $fournisseur['id'],
+            'date_facture' => $f['date']->toDateString(),
         ];
     }
 
@@ -486,6 +558,53 @@ class ImportFacturesCommand extends Command
         return $this->numerosSimules[$cle];
     }
 
+    private function reporterRattachement(?array $rattachement): void
+    {
+        if ($rattachement === null) {
+            return;
+        }
+
+        $this->line('');
+        $this->info('--- Rattachement consultants / missions ---');
+        $this->line(sprintf(
+            '%d facture(s) rattachée(s) à un consultant | %d rattachée(s) à une mission',
+            $rattachement['consultants'] ?? 0,
+            $rattachement['missions'] ?? 0
+        ));
+
+        if (! empty($rattachement['ambigus'])) {
+            $this->warn('  Noms de consultants ambigus (id le plus petit retenu) : '
+                .implode(', ', array_slice($rattachement['ambigus'], 0, 20)));
+        }
+
+        $nonRattachees = $rattachement['non_rattachees'] ?? [];
+
+        if ($nonRattachees) {
+            $this->warn(sprintf('  %d facture(s) non rattachée(s) :', count($nonRattachees)));
+
+            foreach (array_slice($nonRattachees, 0, 50) as $nonRattachee) {
+                $identifiant = isset($nonRattachee['ligne']) && $nonRattachee['ligne'] !== null
+                    ? "Ligne {$nonRattachee['ligne']}"
+                    : (isset($nonRattachee['id']) ? "Facture #{$nonRattachee['id']}" : 'Ligne inconnue');
+
+                $this->line(sprintf(
+                    '    %s : %s (%s)',
+                    $identifiant,
+                    $nonRattachee['raison'] ?? 'raison inconnue',
+                    $nonRattachee['beneficiaire'] ?? 'bénéficiaire absent'
+                ));
+            }
+
+            if (count($nonRattachees) > 50) {
+                $this->line('    ...');
+            }
+        }
+
+        if (isset($rattachement['erreur'])) {
+            $this->error('  Échec du rattachement : '.$rattachement['erreur']);
+        }
+    }
+
     private function reporter(array $rapport): void
     {
         $this->line('');
@@ -519,6 +638,8 @@ class ImportFacturesCommand extends Command
                 $this->line($e);
             }
         }
+
+        $this->reporterRattachement($rapport['rattachement'] ?? null);
 
         $clientsNouveaux = array_values(array_filter($this->clientsRef, fn ($c) => $c['nouveau']));
         $fournisseursNouveaux = array_values(array_filter($this->fournisseursRef, fn ($fr) => $fr['nouveau']));

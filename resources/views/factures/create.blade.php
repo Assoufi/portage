@@ -233,7 +233,7 @@
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 @error('mode_reglement') border-red-500 @enderror">
                             <option value="">Sélectionner</option>
                             @foreach(['Virement bancaire', 'Chèque', 'Espèces', 'Carte bancaire', 'Prélèvement'] as $mode)
-                                <option value="{{ $mode }}" {{ old('mode_reglement', $clone['mode_reglement'] ?? '') == $mode ? 'selected' : '' }}>{{ $mode }}</option>
+                                <option value="{{ $mode }}" {{ old('mode_reglement', ($clone['mode_reglement'] ?? '') ?: 'Virement bancaire') == $mode ? 'selected' : '' }}>{{ $mode }}</option>
                             @endforeach
                         </select>
                         @error('mode_reglement')

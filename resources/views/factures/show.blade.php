@@ -10,7 +10,11 @@
 <div class="space-x-2">
             <a href="{{ route('factures.pdf', $facture) }}" target="_blank"
                class="bg-gray-600 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-                Imprimer
+                Imprimer signée
+            </a>
+            <a href="{{ route('factures.pdf', ['facture' => $facture, 'signe' => 0]) }}" target="_blank"
+               class="bg-gray-400 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                Imprimer non signée
             </a>
             <a href="{{ route('factures.edit', $facture) . (request()->getQueryString() ? '?' . request()->getQueryString() : '') }}"
                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
