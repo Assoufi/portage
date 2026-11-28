@@ -43,6 +43,8 @@ Route::middleware(['auth'])->group(function () {
     // /clients/check-identification et tente de lier la chaîne comme ID de client.
     Route::get('clients/check-identification', [ClientController::class, 'checkIdentification'])
         ->name('clients.check-identification');
+    Route::post('clients/importer', [ClientController::class, 'importer'])
+        ->name('clients.importer');
     Route::resource('clients', ClientController::class);
 
     // Routes pour les Fournisseurs

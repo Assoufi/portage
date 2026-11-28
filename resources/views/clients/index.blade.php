@@ -8,14 +8,34 @@
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             Clients
         </h2>
-        <a href="{{ route('clients.create') }}" 
-           class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
-            + Nouveau Client
-        </a>
+        <div class="flex items-center gap-2">
+            <button type="button"
+                    onclick="document.getElementById('importClientsModal').classList.remove('hidden')"
+                    class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                Importer Excel
+            </button>
+            <a href="{{ route('clients.create') }}"
+               class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                + Nouveau Client
+            </a>
+        </div>
     </div>
 @endsection
 
 @section('content')
+    @if(session('import_rapport'))
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-semibold text-gray-800">Rapport d'import Excel{{ session('import_fichier') ? ' - ' . session('import_fichier') : '' }}</h3>
+                    <button onclick="document.getElementById('importRapport').classList.toggle('hidden')"
+                            class="text-xs text-gray-500 hover:text-gray-700">Afficher / masquer</button>
+                </div>
+                <pre id="importRapport" class="text-xs bg-gray-50 border border-gray-200 rounded-md p-4 overflow-auto max-h-96 whitespace-pre-wrap">{{ session('import_rapport') }}</pre>
+            </div>
+        </div>
+    @endif
+
     <!-- Filtres et recherche -->
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
         <div class="p-6">
@@ -150,6 +170,51 @@
         
         <div class="px-6 py-4 border-t border-gray-200">
             {{ $clients->withQueryString()->links() }}
+        </div>
+    </div>
+
+    {{-- Modal d'import Excel des clients --}}
+    <div id="importClientsModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">Import Excel des clients</h3>
+                <button onclick="document.getElementById('importClientsModal').classList.add('hidden')"
+                        class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <form action="{{ route('clients.importer') }}" method="POST" enctype="multipart/form-data"
+                  onsubmit="var b = this.querySelector('button[type=submit]'); b.disabled = true; b.textContent = 'Import en cours...';">
+                @csrf
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Fichier Excel (.xlsx / .xls)</label>
+                    <input type="file" name="fichier" accept=".xlsx,.xls" required
+                           class="w-full rounded-md border-gray-300 shadow-sm">
+                    <p class="mt-2 text-xs text-gray-500">
+                        Colonnes attendues : <strong>Client</strong>, <strong>Adresse</strong>,
+                        <strong>type_identification</strong>, <strong>num_identification</strong>,
+                        <strong>Delai</strong>, <strong>Devise</strong>, <strong>Livraison</strong>,
+                        <strong>Remarques</strong>.
+                    </p>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Les colonnes <strong>Nom facture</strong> et <strong>date_import</strong> sont ignorées.
+                    </p>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Les clients existants sont rapprochés par nom (insensible à la casse et aux espaces).
+                        Les cellules vides n'écrasent pas les valeurs existantes. Un client archivé portant
+                        le même nom est restauré puis mis à jour.
+                    </p>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button"
+                            onclick="document.getElementById('importClientsModal').classList.add('hidden')"
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Annuler
+                    </button>
+                    <button type="submit"
+                            class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                        Importer
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 @endsection

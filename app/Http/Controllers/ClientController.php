@@ -3,10 +3,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Imports\ClientsImport;
 use App\Models\Client;
 use App\Http\Requests\ClientRequest;
+use App\Services\ClientImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
 
 class ClientController extends Controller
 {
@@ -35,6 +41,104 @@ class ClientController extends Controller
         $devises = ['MAD', 'EUR', 'USD', 'GBP', 'CAD'];
 
         return view('clients.index', compact('clients', 'devises'));
+    }
+
+    /**
+     * Importe les clients depuis un fichier Excel.
+     */
+    public function importer(Request $request)
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
+        try {
+            $request->validate([
+                'fichier' => 'required|file|mimes:xlsx,xls|max:20480',
+            ]);
+        } catch (ValidationException $e) {
+            return redirect()->route('clients.index')
+                ->withErrors($e->errors())
+                ->with('error', 'Import Excel : '.($e->errors()['fichier'][0] ?? 'fichier invalide (xlsx/xls, 20 Mo max).'));
+        }
+
+        $nom = null;
+
+        try {
+            $fichier = $request->file('fichier');
+            $nomOriginal = preg_replace('/[\\\\\/:*?"<>|]/', '_', $fichier->getClientOriginalName());
+            $nom = now()->format('Ymd_His').'_'.$nomOriginal;
+
+            $enregistre = Storage::disk('local')->putFileAs('imports/clients', $fichier, $nom);
+
+            if ($enregistre === false) {
+                throw new \RuntimeException("Impossible d'enregistrer le fichier importé.");
+            }
+
+            $chemin = Storage::disk('local')->path('imports/clients/'.$nom);
+
+            $import = new ClientsImport;
+            Excel::import($import, $chemin);
+
+            $rapport = app(ClientImportService::class)->importer($import);
+            $texte = $this->formaterRapportImport($rapport);
+            $success = $rapport['invalides'] === 0;
+
+            return redirect()->route('clients.index')
+                ->with('import_rapport', $texte)
+                ->with('import_fichier', $nom)
+                ->with($success ? 'success' : 'error', $success
+                    ? 'Import Excel exécuté - rapport détaillé ci-dessous.'
+                    : 'Import Excel terminé avec des erreurs - rapport détaillé ci-dessous.');
+        } catch (Throwable $e) {
+            return redirect()->route('clients.index')
+                ->with('import_rapport', "Rapport d'import des clients\n\nErreur : ".$e->getMessage())
+                ->with('import_fichier', $nom)
+                ->with('error', 'Import Excel interrompu - voir le rapport ci-dessous.');
+        }
+    }
+
+    /**
+     * Construit le rapport texte affiché après l'import.
+     */
+    private function formaterRapportImport(array $rapport): string
+    {
+        $lignes = [
+            "Rapport d'import des clients",
+            '',
+            'Lignes lues : '.$rapport['lignes'],
+            'Clients créés : '.$rapport['creees'],
+            'Clients mis à jour : '.$rapport['mises_a_jour'],
+            'Clients restaurés : '.$rapport['restaurees'],
+            'Lignes invalides : '.$rapport['invalides'],
+            'Colonnes ignorées ('.$rapport['ignorees'].') : '.(empty($rapport['colonnes_ignorees'])
+                ? 'aucune'
+                : implode(', ', $rapport['colonnes_ignorees'])),
+        ];
+
+        $invalides = array_filter(
+            $rapport['details'] ?? [],
+            fn (array $detail) => ($detail['statut'] ?? null) === 'invalide'
+        );
+
+        $lignes[] = '';
+
+        if ($invalides === []) {
+            $lignes[] = 'Aucune ligne invalide.';
+
+            return implode("\n", $lignes);
+        }
+
+        $lignes[] = 'Détail des lignes invalides :';
+
+        foreach ($invalides as $detail) {
+            $nom = trim((string) ($detail['nom'] ?? ''));
+
+            $lignes[] = '- Ligne '.($detail['ligne'] ?? '?')
+                .($nom !== '' ? ' ('.$nom.')' : '')
+                .' : '.($detail['message'] ?? 'Ligne invalide.');
+        }
+
+        return implode("\n", $lignes);
     }
 
     public function create()
